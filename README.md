@@ -32,6 +32,15 @@ curl -fsSL https://raw.githubusercontent.com/BlueBd/test-dapp-skill-scaffolding/
 - **Form A**：源目录含 `index.ts`（有业务函数）→ 注入 onchainOS 路由段落
 - **Form B**：源目录纯 markdown（无 index.ts）→ 生成带 `TODO [三方]` 占位的 stub
 
+## 测试指南
+
+详细的端到端测试步骤（含 Uniswap / GMX / Morpho 三个 DApp 样例）见 **[GUIDE.md](GUIDE.md)**：
+
+- 选择 DApp 测试端点并配置环境变量
+- 从 GitHub 克隆脚手架 + DApp skill
+- 触发 Mode B 升级并验证输出
+- 按 businessType 运行典型测试场景
+
 ## 支持的 businessType
 
 | businessType | 下一步工具 | 典型场景 |
