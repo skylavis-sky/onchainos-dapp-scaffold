@@ -1,0 +1,25 @@
+// {{NAME}} — onchainOS DApp Skill
+// 由 onchainos-dapp-scaffold 生成（严格遵循 onchainOS Skill 方案规范）。
+//
+// ⚠️ RUNTIME MODEL — 请仔细阅读
+// 本文件不会被 Node/Deno/Bun 等进程执行。Claude Code Skill = Markdown 指令集。
+// 实际执行流程：LLM 读取本文件 → 在推理阶段「模拟」函数体（用 Bash/WebFetch 调真实 API）
+// → 按 pending_sign 契约拼装返回 JSON → 按 next_action.tool 路由到 onchainOS。
+// 因此：保持函数为「纯函数式 calldata 构造」，避免循环 / 订阅 / 长流程。
+//
+// DApp 开发者仅需在 TODO [三方] 注释处填入业务逻辑。
+// 严禁引入 ethers.Wallet / signTransaction / sendTransaction / 本地私钥。
+
+type PendingSign = {
+  status: 'pending_sign';
+  unsigned_tx: {
+    to: string;
+    data: string;
+    value: string;
+    chain: string;
+  };
+  description: string;
+  next_action: { tool: string; reason?: string };
+};
+
+{{TOOL_FUNCTIONS}}

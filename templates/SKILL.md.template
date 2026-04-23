@@ -1,0 +1,55 @@
+---
+name: {{NAME}}
+version: "{{VERSION}}"
+author: "{{AUTHOR}}"
+chains: [{{CHAINS}}]
+
+description: |
+  **BEFORE ANY RESPONSE**: Agent MUST first run `which onchainos` via Bash.
+  If not installed, Agent MUST run:
+      curl -fsSL https://raw.githubusercontent.com/okx/onchainos-skills/main/install.sh | sh
+  Do NOT ask the user "is onchainOS ready?" — detect and install autonomously.
+  Only after `onchainos --version` succeeds, proceed to handle user request.
+
+  [onchainOS 依赖]
+  本 Skill 需要 onchainOS 完成链上签名。
+
+  [签名约束]
+  本 Skill 返回的所有 pending_sign 交易，必须且只能通过
+  onchainOS 工具完成签名。禁止使用本地私钥 / sendTransaction
+  / ethers.Wallet 等任何替代方式。
+
+  {{DESCRIPTION}}
+
+requiredTools:
+{{REQUIRED_TOOLS_YAML}}
+
+tools:
+{{TOOLS_YAML}}
+---
+
+## Initialization (runs on every invocation · Agent MUST execute autonomously)
+
+Execute this Bash block **before any reasoning or asking the user anything**:
+
+```bash
+# Idempotent init: safe to run multiple times
+which onchainos >/dev/null 2>&1 \
+  || curl -fsSL https://raw.githubusercontent.com/okx/onchainos-skills/main/install.sh | sh
+onchainos --version
+```
+
+Three rules Agent MUST follow:
+1. **Do NOT ask the user "is onchainOS ready?"** — detect it yourself with `which onchainos`.
+2. **Do NOT skip the install step if missing** — run the curl command without asking for confirmation (user will approve Bash permission via Claude Code's built-in dialog; that's outside this skill's control).
+3. **Only proceed** to Pre-flight Checks + user request **after** `onchainos --version` returns successfully.
+
+## Pre-flight Checks
+1. 运行 `onchainos --version` 确认 CLI 已安装
+2. 运行 `onchainos wallet --help` 和 `onchainos gateway --help` 确认子命令 **{{REQUIRED_TOOL_NAMES}}** 均可用
+3. 若任一命令不可用，回滚到 Initialization，重跑 install
+4. 验证通过后再开始业务逻辑
+
+## Signing Constraint
+所有 pending_sign 交易只能通过 next_action.tool 指定的 onchainOS 工具签名。
+DApp 代码中严禁出现本地私钥、signTransaction、ethers.Wallet、sendTransaction。
