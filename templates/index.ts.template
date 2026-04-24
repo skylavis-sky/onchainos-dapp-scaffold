@@ -22,4 +22,25 @@ type PendingSign = {
   next_action: { tool: string; reason?: string };
 };
 
+// ── EIP-712 精度ヘルパー ─────────────────────────────────────────────────────
+// uint*/int* フィールドは必ず toSafeInt() でシリアライズすること。
+// JS Number は 2^53-1 を超えると精度を失い、チェーン上の署名検証が無音で失敗する。
+//
+// EIP-712 precision helper — REQUIRED for all uint*/int* fields.
+// JS Number silently loses precision above 2^53-1 (uint64 and above).
+// Using a plain Number for these fields causes on-chain signature verification
+// failures with no client-side error — extremely hard to debug.
+//
+// Usage:  toSafeInt(apiResponse.sigDeadline)   // returns string, safe for all uint sizes
+//
+// ❌ Wrong:  message: { amount: apiResp.amount }
+// ✅ Right:  message: { amount: toSafeInt(apiResp.amount) }
+// ─────────────────────────────────────────────────────────────────────────────
+function toSafeInt(v: unknown): string {
+  if (v === null || v === undefined) {
+    throw new Error('[EIP712-PRECISION] field is null/undefined — check API response');
+  }
+  return BigInt(String(v)).toString();
+}
+
 {{TOOL_FUNCTIONS}}

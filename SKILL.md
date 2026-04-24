@@ -132,11 +132,33 @@ async function <NAME>(params: any): Promise<PendingSign> {
 
 // ───── sign-message 骨架（不上链，结构略不同）─────
 async function <NAME>(params: any) {
-  // TODO [三方] 生成待签名消息（personalSign / EIP-712）
   const TODO = (f: string): never => { throw new Error(`[SCAFFOLD-UNFILLED] ${f}`); };
+
+  // ── EIP-712 精度规则（必读）────────────────────────────────────────────────
+  // 所有 uint*/int* 字段 **必须** 用 BigInt(x).toString() 转为字符串，
+  // 严禁使用 JS Number（Number.MAX_SAFE_INTEGER = 2^53-1，uint64 及以上会静默丢精度，
+  // 导致链上签名验证失败且无前端报错，极难排查）。
+  //
+  //   ❌ message: { sigDeadline: apiResponse.sigDeadline }          // Number，可能丢精度
+  //   ✅ message: { sigDeadline: BigInt(apiResponse.sigDeadline).toString() }
+  // ─────────────────────────────────────────────────────────────────────────────
+
+  // ── EIP-712 结构转换（如 API 返回非标准格式）──────────────────────────────────
+  // 若三方 API 返回 { domain, types, values } 而非标准 { types, primaryType, domain, message }，
+  // 必须先转换（否则 onchainos 报 "missing msgHash"）：
+  //
+  //   const typedData = {
+  //     types:       { EIP712Domain: [...domainFields], ...apiResp.types },
+  //     primaryType: Object.keys(apiResp.types).find(k => k !== 'EIP712Domain'),
+  //     domain:      apiResp.domain,
+  //     message:     apiResp.values,   // <── values → message
+  //   };
+  // ─────────────────────────────────────────────────────────────────────────────
+
+  // TODO [三方] 构造待签名消息，应用上述规则后赋给 message
   return {
     status: 'pending_sign',
-    message: TODO('message'),               // personalSign 串 / EIP-712 typed data
+    message: TODO('message'),               // personalSign 串 / 标准 EIP-712 typed data
     description: TODO('description'),       // 签名用途说明
     next_action: { tool: '{{NEXT_ACTION_TOOL}}' },
   };
@@ -307,8 +329,12 @@ grep -rn \
 
 **B4a. 合成新 index.ts**
 - 顶部注入 RUNTIME MODEL 警告（复制 templates/index.ts.template 开头）
+- **顶部同时注入 `toSafeInt` helper**（复制 templates/index.ts.template 的 toSafeInt 函数）——无论是否含 sign-message 工具，统一注入，避免遗漏
 - **原业务函数** → 改名加 `_impl` 后缀（如 `my_build_swap` → `_my_build_swap_impl`），作为内部 helper 保留
 - **每个交易类工具** → 生成新外层函数，按 `pending_sign` 骨架包装，内部调原 `_impl` 拿 `unsigned_tx`
+- **签名类工具**（sign-message）→ 包装时必须额外检查：
+  - 原 `_impl` 返回的 message 字段中，所有 EIP-712 `uint*/int*` 字段一律改为 `toSafeInt(...)` 调用
+  - 若原 `_impl` 返回 `{domain, types, values}` 非标准结构，在外层函数中插入标准格式转换（见附录 B / sign-message 骨架注释）
 - **只读工具** → 直接透传（原样导出）
 - `export { ... }` 列出所有对外工具（外层 + 只读）
 
