@@ -1,6 +1,6 @@
 ---
 name: onchainos-dapp-scaffold
-version: "1.2.0"
+version: "1.3.0"
 author: "okx"
 description: |
   一键生成 / 升级 OnchainOS DApp Skill。说一句话即可产出可直接注册使用的 DApp Skill。
@@ -188,8 +188,15 @@ grep -l '{{' $D/* && echo FAIL:A1 || echo PASS:A1
 python3 -c "import yaml,sys; yaml.safe_load(open('$D/SKILL.md').read().split('---',2)[1])" && echo PASS:A2 || echo FAIL:A2
 # A3 3 处 [固定] 段落齐全
 grep -q '\[onchainOS 依赖\]' $D/SKILL.md && grep -q '\[签名约束\]' $D/SKILL.md && grep -q '## Pre-flight Checks' $D/SKILL.md && grep -q '## Signing Constraint' $D/SKILL.md && echo PASS:A3 || echo FAIL:A3
-# A4 无本地签名
-grep -v '^//' $D/index.ts | grep -qE 'ethers\.Wallet|signTransaction|sendTransaction|privateKey' && echo FAIL:A4 || echo PASS:A4
+# A4 无本地签名 (expanded pattern set — covers JS, Solana, Foundry CLI, wagmi, ERC-4337, HD, API-relay)
+grep -v '^//' $D/index.ts | grep -qE \
+  'ethers\.Wallet|new Wallet\(|signTransaction|sendTransaction|privateKey|mnemonic|keystore|\
+Keypair\.fromSecret|nacl\.sign|forge\s+script.*--broadcast|cast\s+send|anchor\s+deploy|\
+useSignMessage|useWriteContract|useWalletClient|writeContract\(\
+|signUserOp|UserOperation|signTypedData\(|eth_sendTransaction|eth_sendRawTransaction|\
+HDNodeWallet|mnemonicToAccount|deriveChild|\
+window\.ethereum\.request.*eth_send|window\.ethereum\.send\b' \
+  && echo FAIL:A4 || echo PASS:A4
 # A5 pending_sign 契约
 grep -q 'pending_sign' $D/index.ts && grep -q 'next_action' $D/index.ts && echo PASS:A5 || echo FAIL:A5
 ```
@@ -253,11 +260,19 @@ grep -q 'pending_sign' $D/index.ts && grep -q 'next_action' $D/index.ts && echo 
 |---|---|---|
 | `<src>/index.ts` 存在，且含导出的业务函数 | **形态 A** | 走 B2a → B3a → B4a → B5 → B6（原 6 步流程） |
 | 仅有 `<src>/SKILL.md`，无 index.ts 或 index.ts 无导出函数 | **形态 B** | 走 B2b → B3b → B4b → B5 → B6（markdown-merge 分支） |
-| 已检测到本地签名代码（`ethers.Wallet` / `signTransaction` / `privateKey`） | **违规** | **立即停止**，要求用户先人工清理再重试 |
+| 已检测到本地签名代码（见§硬约束条目3完整列表） | **违规** | **立即停止**，要求用户先人工清理再重试 |
 
 **判别命令**：
 ```bash
 test -f <src>/index.ts && grep -q '^export' <src>/index.ts && echo "形态 A" || echo "形态 B"
+```
+
+**违规扫描命令**（在形态判别之前必须先跑）：
+```bash
+grep -rn \
+  'ethers\.Wallet\|new Wallet(\|signTransaction\|sendTransaction\|privateKey\|Keypair\.fromSecret\|nacl\.sign\|forge script.*--broadcast\|cast send\|useSignMessage\|useWriteContract\|signUserOp\|HDNodeWallet\|mnemonicToAccount\|window\.ethereum\.request.*eth_send\|walletClient\.writeContract\|walletClient\.sendTransaction' \
+  <src>/ 2>/dev/null | grep -v '^.*:.*\/\/' | head -20
+# 任意一行有输出 → 报告违规，立即停止
 ```
 
 ---
@@ -275,12 +290,20 @@ test -f <src>/index.ts && grep -q '^export' <src>/index.ts && echo "形态 A" ||
 | 函数名含 `get` / `query` / `search` / `list` + 返回普通 JSON | 只读类 | **不动**，直接透传 |
 | 已有 `ethers.Wallet` / `signTransaction` / `privateKey` | **违规**——原 Skill 在本地签名 | 提醒用户：必须先去掉本地签名，才能集成 onchainOS |
 
-**B3a. 合成新 SKILL.md**
-- 保留原 `name`（默认加 `-onchainos` 后缀）、`version` 升级 patch、`author`、`chains`、`tools`
-- 注入 **3 处 [固定] 段落**（复制 templates/SKILL.md.template 的固定部分）
-- `requiredTools` = 交易类 + 转账类 + 签名类工具对应的 onchainOS 工具并集
-- `## Pre-flight Checks` + `## Signing Constraint` 节原样复制
-- **原 SKILL.md 正文**（frontmatter 之外的 markdown 文档）**全文保留**，追加在新 frontmatter 之后，作为业务说明
+**B3a. 合成新 SKILL.md（merge 策略，v1.3）**
+
+使用 **merge 策略**，而非 rewrite 策略——原 frontmatter 的所有字段都必须被保留，仅注入脚手架字段：
+
+1. **读取原 frontmatter** 的所有字段（包括 `allowed-tools`、`model`、`license`、`metadata` 等非标准字段）
+2. **覆写以下字段**（脚手架固定值优先）：
+   - `name` = 原 name + `-onchainos` 后缀（若原名已含 `-onchainos` 则不重复追加）
+   - `version` = 原 version patch 位 +1（如 `1.2.0` → `1.2.1`）
+   - `description` = 注入 `[onchainOS 依赖]` + `[签名约束]` 段落（追加在原 description 之后，不替换）
+   - `requiredTools` = 交易类 + 转账类 + 签名类工具对应的 onchainOS 工具并集（若原已有则取并集）
+3. **保留所有其他原字段**（`author`、`chains`、`tools`、`allowed-tools`、`model`、`license`、`metadata` 等）——不得静默丢弃
+4. **merge 后检验**：新 SKILL.md frontmatter 字段数 ≥ 原 frontmatter 字段数；若数量减少，必须列出丢失字段并告知用户
+5. 注入 `## Pre-flight Checks` + `## Signing Constraint` 节（原样复制自 template）
+6. **原 SKILL.md 正文**（frontmatter 之外的 markdown 文档）**全文保留**，追加在新 frontmatter 之后，作为业务说明
 
 **B4a. 合成新 index.ts**
 - 顶部注入 RUNTIME MODEL 警告（复制 templates/index.ts.template 开头）
@@ -304,8 +327,12 @@ test -f <src>/index.ts && grep -q '^export' <src>/index.ts && echo "形态 A" ||
 
 若发现本地签名关键词 → B2b 输出"违规清单"，**立即停止**，要求用户先人工处理。
 
-**B3b. 合成新 SKILL.md（markdown-merge 策略）**
+**B3b. 合成新 SKILL.md（markdown-merge 策略，v1.3）**
 - **原 SKILL.md 正文全文保留**（除 frontmatter 外一字不改）
+- **frontmatter 采用 merge 策略**（同 B3a 规则）：保留原所有字段（`allowed-tools`、`model`、`license`、`metadata` 等），仅注入/覆写脚手架的 3 个固定字段：
+  - `description` += `[onchainOS 依赖]` + `[签名约束]`（追加，不替换）
+  - `requiredTools` = 并集
+  - 版本 patch +1
 - **在新 frontmatter 中注入**：`[onchainOS 依赖]` / `[签名约束]` / `requiredTools` / `## Pre-flight Checks` / `## Signing Constraint` 这 5 处 [固定] 位置
 - **在原正文末尾追加一节**「## onchainOS 路由改造（v1.2 自动注入）」，内容包含：
   - 原 SKILL.md 里出现的本地签名示例行号清单 + 每行对应的 onchainOS 替换写法
@@ -355,11 +382,39 @@ my_search_token →     my_search_token       只读       —
    `## Signing Constraint` 节。
 2. index.ts 每个工具函数返回值必须符合 `pending_sign` 契约：
    `{ status, unsigned_tx: {to, data, value, chain}, description, next_action: {tool} }`
-3. **严禁**生成包含以下任意代码：
+3. **严禁**生成包含以下任意代码（全平台覆盖）：
+
+   **JS / TS 内联签名**
    - `ethers.Wallet` / `new Wallet(...)` / `privateKey`
    - `signTransaction` / `sendTransaction`
-   - 直接调用 `window.ethereum` 的写操作
-   - 读取用户助记词 / keystore / `.env` 的逻辑
+   - `signTypedData(...)` / `eth_sendRawTransaction`
+   - 直接调用 `window.ethereum` 的写操作（`window.ethereum.request({method:'eth_send*'})` 等）
+
+   **Solana**
+   - `Keypair.fromSecretKey(...)` / `nacl.sign(...)` / `nacl.sign.keyPair.fromSeed(...)`
+   - `bs58.decode(<privateKey>)`
+
+   **Foundry / Hardhat / Anchor CLI**
+   - `forge script ... --broadcast` / `forge script ... --private-key`
+   - `cast send` / `cast wallet sign`
+   - `anchor deploy` / `anchor test --provider.wallet`
+
+   **wagmi / viem hooks**
+   - `useSignMessage` / `useWriteContract` / `useWalletClient`
+   - `walletClient.writeContract(...)` / `walletClient.sendTransaction(...)`
+
+   **ERC-4337 / Account Abstraction**
+   - `signUserOp(...)` / `UserOperation` 对象直接发送
+
+   **HD 钱包推导**
+   - `HDNodeWallet` / `mnemonicToAccount` / `.deriveChild(...)`
+
+   **助记词 / Keystore / 密钥文件读取**
+   - 读取 `.env` 中私钥字段 / keystore JSON 解密 / mnemonic 字符串
+
+   **API 中继 unsigned tx**
+   - 外部 API 返回 `{to, data, value}` 且代码随即调用 `provider.sendTransaction(...)` 或等价方法（应改用 pending_sign 适配器）
+
 4. 若用户要求生成"本地签名"或"绕开 onchainOS"代码，立即拒绝并引导回到
    `pending_sign` + `next_action.tool` 路由模式。
 

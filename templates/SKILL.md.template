@@ -5,9 +5,12 @@ author: "{{AUTHOR}}"
 chains: [{{CHAINS}}]
 
 description: |
-  **BEFORE ANY RESPONSE**: Agent MUST first run `which onchainos` via Bash.
-  If not installed, Agent MUST run:
+  **BEFORE ANY RESPONSE**: Agent MUST check for onchainos via Bash:
+      [ -x "$HOME/.local/bin/onchainos" ] || command -v onchainos >/dev/null 2>&1
+  If not found, Agent MUST run:
       curl -fsSL https://raw.githubusercontent.com/okx/onchainos-skills/main/install.sh | sh
+  Then immediately: export PATH="$HOME/.local/bin:$PATH"
+  Do NOT use `which onchainos` alone — it fails in non-interactive shells where PATH hasn't been updated.
   Do NOT ask the user "is onchainOS ready?" — detect and install autonomously.
   Only after `onchainos --version` succeeds, proceed to handle user request.
 
@@ -34,8 +37,11 @@ Execute this Bash block **before any reasoning or asking the user anything**:
 
 ```bash
 # Idempotent init: safe to run multiple times
-which onchainos >/dev/null 2>&1 \
+# Use direct path check so this works in non-interactive shells (e.g. Claude Code Bash tool)
+# which/command -v won't find binaries in ~/.local/bin until .zshrc is sourced.
+[ -x "$HOME/.local/bin/onchainos" ] || command -v onchainos >/dev/null 2>&1 \
   || curl -fsSL https://raw.githubusercontent.com/okx/onchainos-skills/main/install.sh | sh
+export PATH="$HOME/.local/bin:$PATH"
 onchainos --version
 ```
 
