@@ -1,207 +1,142 @@
-# Scaffold Testing Guide
+# DApp Skill Integration Guide
 
-## Overview
+> For **maintainers** validating the scaffold against known test endpoints, see [TESTING.md](TESTING.md).
 
-Three third-party DApp test endpoints are currently supported. Each maps to a different `businessType`, exercising a different scaffold upgrade path.
+This guide walks a DApp developer through upgrading an existing DApp skill to route signing and broadcasting through onchainOS. The scaffold converts your skill — it does not generate one from scratch.
 
-- **Uniswap** · `businessType=swap` · DEX swap · simple
-- **GMX** · `businessType=contract-call` · perp / LP · medium complexity
-- **Morpho** · `businessType=contract-call` · lending / deposit · medium · ⚠ pre-v1.0 experimental
+## Prerequisites
 
-❌ **Not supported: 1inch** (it's an MCP-pointer skill, not a standalone Claude skill — see Appendix A).
+- An existing DApp skill (your own, or a fork of a third-party DApp's published skill)
+- The scaffold installed at `~/.agents/skills/onchainos-dapp-scaffold/` (see [README.md](README.md#quick-start))
+- An AI agent (Claude Code, OpenClaw, Codex, Cursor, etc.) that reads from `~/.agents/skills/`
+- The onchainOS CLI — the scaffold installs it automatically on first use
 
-## How to use this guide
+## Part 1 — Run the upgrade
 
-1. Step 0 sets `DAPP_CHOICE` (pick one)
-2. Paste subsequent code blocks into the same terminal session, in order
-3. Keep the terminal open — every block shares shell environment variables
-4. There's one Claude Code restart in the middle (marked ⏸)
-
-## Step 0 — Pick a DApp test endpoint
+Install the scaffold if you haven't already:
 
 ```bash
-# 📌 Pick one — edit this line only
-export DAPP_CHOICE=uniswap
-
-# The case below auto-sets the other variables
-case "$DAPP_CHOICE" in
-  uniswap)
-    export DAPP_REPO_URL=https://github.com/Uniswap/uniswap-ai
-    export DAPP_NAME=my-uniswap-swap
-    export SKILL_SUBDIR=packages/plugins/uniswap-trading/skills/swap-integration
-    export BUSINESS_TYPE=swap
-    ;;
-  gmx)
-    export DAPP_REPO_URL=https://github.com/gmx-io/gmx-ai
-    export DAPP_NAME=my-gmx-trading
-    export SKILL_SUBDIR=skills/gmx-trading
-    export BUSINESS_TYPE=contract-call
-    ;;
-  morpho)
-    export DAPP_REPO_URL=https://github.com/morpho-org/morpho-skills
-    export DAPP_NAME=my-morpho-cli
-    export SKILL_SUBDIR=skills/morpho-cli
-    export BUSINESS_TYPE=contract-call
-    echo "⚠ Morpho repo is pre-v1.0 experimental; APIs may shift"
-    ;;
-  *)
-    echo "❌ DAPP_CHOICE must be uniswap / gmx / morpho"
-    ;;
-esac
-
-# Sanity check: print current config
-echo "DAPP_CHOICE=$DAPP_CHOICE"
-echo "DAPP_REPO_URL=$DAPP_REPO_URL"
-echo "DAPP_NAME=$DAPP_NAME"
-echo "SKILL_SUBDIR=$SKILL_SUBDIR"
-echo "BUSINESS_TYPE=$BUSINESS_TYPE"
+curl -fsSL https://raw.githubusercontent.com/okx/dapp-connect-agenticwallet/main/install.sh | sh
 ```
 
-## Reset the test environment (run before each re-test)
+Then restart your AI agent so it picks up the new skill.
+
+Place your DApp skill somewhere under `~/.agents/skills/` (or `~/.claude/skills/` for Claude Code), then ask your agent:
+
+```
+Use the scaffold to upgrade the DApp Skill at ~/.agents/skills/<your-skill>
+```
+
+To override the detected `businessType` (e.g. the scaffold misidentifies a contract-call skill as a swap):
+
+```
+Use the scaffold to upgrade the DApp Skill at ~/.agents/skills/<your-skill>, businessType=contract-call
+```
+
+The scaffold detects whether your source is [Form A or Form B](README.md#quick-start) automatically.
+
+**What the scaffold does:**
+
+1. Scans for local signing code (`ethers.Wallet`, `sendTransaction`, `privateKey`, etc.) — blocks the upgrade if found
+2. Detects the source form and `businessType`
+3. Generates a new skill at `<your-skill>-onchainos/` adjacent to the input
+4. Installs the onchainOS CLI if not present
+5. Runs self-checks (A1–A5) to verify the output
+
+The original skill is untouched. You can roll back at any time by removing the `-onchainos` directory.
+
+## Part 2 — Verify the output
+
+After the upgrade, run these commands to confirm the output is well-formed:
 
 ```bash
-# 1. Remove the scaffold (both canonical location and Claude symlink)
-rm -rf ~/.agents/skills/onchainos-dapp-scaffold
-rm -f  ~/.claude/skills/onchainos-dapp-scaffold
+SKILL_DIR=~/.agents/skills/<your-skill>-onchainos
 
-# 2. Remove the current DApp skill (both pre- and post-upgrade names)
-rm -rf ~/.claude/skills/"$DAPP_NAME"
-rm -rf ~/.claude/skills/"${DAPP_NAME}-onchainos"
+# Output directory was created
+ls "$SKILL_DIR/SKILL.md"
 
-# 3. Clean clone temp dirs for all DApps
-rm -rf /tmp/uniswap-monorepo /tmp/gmx-monorepo /tmp/morpho-monorepo
+# Four required markers are present
+grep -c "\[onchainOS dependency\]" "$SKILL_DIR/SKILL.md"  # Expected: 1
+grep -c "\[signing constraint\]"   "$SKILL_DIR/SKILL.md"  # Expected: 1
+grep -c "## Pre-flight Checks"     "$SKILL_DIR/SKILL.md"  # Expected: 1
+grep -c "## Signing Constraint"    "$SKILL_DIR/SKILL.md"  # Expected: 1
 
-# 4. Uninstall onchainOS CLI
-rm -rf ~/.local/bin/onchainos
-rm -rf ~/.onchainos
+# Template variables were all substituted
+grep -c "{{" "$SKILL_DIR/SKILL.md"  # Expected: 0
 
-# 5. Clear shell env vars (keep DAPP_* for re-use)
-unset ONCHAINOS_TOKEN
-unset ONCHAINOS_SCAFFOLD_REPO
-
-# 6. Sanity check
-which onchainos
-# Expected: onchainos not found
-
-ls ~/.claude/skills/ | grep -E "^(onchainos-dapp-scaffold|${DAPP_NAME})"
-# Expected: empty
-
-# ⚠ After deleting skill directories, restart your AI agent — otherwise
-#   the old skill registry is still cached.
+# Frontmatter name ends with -onchainos
+grep "^name:" "$SKILL_DIR/SKILL.md"
 ```
 
-## Part 1a — Clone the scaffold from GitHub
-
-Scaffold repo: `https://github.com/okx/dapp-connect-agenticwallet` (MIT, public). Use `git clone` directly — no zip download needed.
+For Form A upgrades (source had `index.ts`), also check:
 
 ```bash
-# Clone the scaffold to the universal skills location
-git clone https://github.com/okx/dapp-connect-agenticwallet \
-  ~/.agents/skills/onchainos-dapp-scaffold
-
-# Symlink into Claude Code's skills dir so Claude picks it up too
-mkdir -p ~/.claude/skills
-ln -sfn ~/.agents/skills/onchainos-dapp-scaffold \
-        ~/.claude/skills/onchainos-dapp-scaffold
-
-# Sanity check: confirm SKILL.md exists
-ls ~/.agents/skills/onchainos-dapp-scaffold/SKILL.md
-# Expected: SKILL.md path
-
-# Optional: check the scaffold version
-grep "^version:" ~/.agents/skills/onchainos-dapp-scaffold/SKILL.md
+# index.ts exists and has no unresolved TODOs
+ls "$SKILL_DIR/index.ts"
+grep -c "TODO \[third-party\]" "$SKILL_DIR/index.ts"  # 0 if you've filled them in; >0 if pending
 ```
 
-## Part 1b — Clone + copy the DApp skill
+If any check fails, see [Appendix F — Troubleshooting](#appendix-f--troubleshooting).
 
-```bash
-# 1. Clone to a temp directory
-TMP_DIR=/tmp/"$DAPP_CHOICE"-monorepo
-rm -rf "$TMP_DIR"
-git clone "$DAPP_REPO_URL" "$TMP_DIR"
+## Part 3 — Test your upgraded skill
 
-# 2. Copy the target skill subdirectory
-cp -r "$TMP_DIR"/"$SKILL_SUBDIR" ~/.claude/skills/"$DAPP_NAME"
+Restart your agent after upgrading so the new skill is picked up.
 
-# 3. Safety step: rewrite the inner SKILL.md frontmatter `name`
-#    to avoid colliding with an already-installed skill of the same name
-sed -i.bak "s/^name: .*/name: $DAPP_NAME/" ~/.claude/skills/"$DAPP_NAME"/SKILL.md
-rm ~/.claude/skills/"$DAPP_NAME"/SKILL.md.bak
+### Auth check
 
-# 4. Verify the directory layout
-ls ~/.claude/skills/"$DAPP_NAME"/SKILL.md
-
-# 5. Verify the frontmatter `name` was rewritten
-grep "^name:" ~/.claude/skills/"$DAPP_NAME"/SKILL.md
-# Expected: name: <whatever DAPP_NAME is>
+```
+Use <your-skill>-onchainos to check if onchainOS is ready
 ```
 
-## ⏸ Part 1 → Part 2 — Restart Claude Code
+Expected: the skill runs its Initialization block, confirms `onchainos --version`, then reports ready.
 
-After installing the scaffold and DApp skill, Claude Code must be restarted so the skill registry picks them up. After the restart, run the command below to trigger the upgrade flow.
+### Read-only call
 
-> The example uses `claude -p` (Claude Code's headless flag). On OpenClaw / Codex / other agents, the equivalent is to paste the trigger phrase into the agent's prompt box after restarting.
+Run a read-only tool first (positions, balances, quotes) to confirm the skill can reach your DApp's API without triggering signing:
 
-```bash
-# After restarting Claude Code (headless one-shot)
-claude -p "Use the scaffold to upgrade the DApp Skill at ~/.claude/skills/$DAPP_NAME, businessType=$BUSINESS_TYPE"
-
-# Or, after restart, open the chat box and paste the command after substituting variables, e.g.:
-# Use the scaffold to upgrade the DApp Skill at ~/.claude/skills/my-uniswap-swap, businessType=swap
+```
+Use <your-skill>-onchainos to [read-only action, e.g. "get my position on Ethereum"]
 ```
 
-## Part 2 — Verify the upgrade
+Expected: data returned directly; no `pending_sign` object; no onchainOS call.
 
-```bash
-# Determinism check: the upgraded skill should exist
-ls ~/.claude/skills/"${DAPP_NAME}-onchainos"/SKILL.md
-# Expected: SKILL.md path
+### Transaction (preview)
 
-# View frontmatter to confirm the spec sections were applied
-grep -A3 "^name:" ~/.claude/skills/"${DAPP_NAME}-onchainos"/SKILL.md | head -10
+Run a transaction-producing tool without a wallet address or with a dry-run flag to see the `pending_sign` shape before committing:
 
-# Optional: ask Claude to list the new skill
-# claude
-# Then prompt: list my local skills whose name starts with $DAPP_NAME
+```
+Use <your-skill>-onchainos to [action] — quote only, no broadcast
 ```
 
-## Part 2 — Run scenario tests by businessType
+Expected: skill returns a `pending_sign` object with `unsigned_tx.chain` in CAIP-2 format (e.g. `eip155:1`), `unsigned_tx.data` starting with `0x`, and `next_action.tool` set to `onchainos wallet contract-call` (or `send` / `sign-message` as appropriate).
 
-Pick the DAPP_CHOICE you set, then copy the matching prompts from below. Three typical scenarios per DApp.
+### Live transaction
 
-### Uniswap · `businessType=swap`
+Once preview looks correct, run a small live transaction:
 
-```bash
-claude -p "Use my-uniswap-swap-onchainos to swap 100 USDC for ETH on Ethereum at 0.5% slippage"
-
-claude -p "Use my-uniswap-swap-onchainos to quote how much USDC I can get for 1 ETH on Ethereum, quote-only no broadcast"
-
-claude -p "Use my-uniswap-swap-onchainos to swap 0.01 WETH for USDC on Base"
+```
+Use <your-skill>-onchainos to [minimal real action, e.g. "swap 0.001 USDC for ETH on Base"]
 ```
 
-### GMX · `businessType=contract-call` · perp futures
+Expected flow:
+1. Skill builds calldata, returns `pending_sign`
+2. Agent passes it to `onchainos wallet contract-call`
+3. onchainOS signs inside TEE and broadcasts
+4. Agent receives `txHash` and reports confirmation
 
-```bash
-claude -p "Use my-gmx-trading-onchainos to open a 5x ETH long on Arbitrum with 100 USDC margin"
+### Multi-step flow (if applicable)
 
-claude -p "Use my-gmx-trading-onchainos to fetch the current funding rate and mark price for BTC perp on Arbitrum"
+For skills with approval + action sequences:
 
-claude -p "Use my-gmx-trading-onchainos to set a stop-loss at 2500 on my existing ETH long"
+```
+Use <your-skill>-onchainos to [action requiring token approval first]
 ```
 
-### Morpho · `businessType=contract-call` · lending
+Expected: two sequential `pending_sign` returns — first the approval, then the action. The agent must not batch both into a single object.
 
-```bash
-claude -p "Use my-morpho-cli-onchainos to deposit 1000 USDC into the highest-APY Morpho Blue pool on Base"
+---
 
-claude -p "Use my-morpho-cli-onchainos to check my Morpho positions and current health factor on Ethereum"
-
-claude -p "Use my-morpho-cli-onchainos to borrow 500 USDC against ETH collateral on Base, target LTV 50%"
-```
-
-**Expected behavior:** the upgraded skill returns a `pending_sign` transaction object (containing `unsigned_tx` + `next_action.tool` pointing to `onchainos wallet contract-call`). The onchainOS CLI takes over from there: signing + broadcasting.
-
-## Appendix A — Why 1inch doesn't go through this flow
+## Appendix A — Why some skills don't go through this flow
 
 The `1inch/1inch-ai` repo's `skills/1inch-mcp-server/SKILL.md` is an **MCP-pointer skill** that points to the remote `https://api.1inch.com/mcp/protocol` service. It has no local `index.ts` to upgrade, requires a 1inch Business Portal API key, and runs all signing logic on a remote server.
 
@@ -343,13 +278,13 @@ When generating `index.ts`, for every assignment to an EIP-712 `message` field, 
 
 **Uniswap**: standard monorepo layout; skills live under `packages/plugins/[plugin]/skills/[name]/`. Direct `cp` works. Form A upgrade path (since the source has `index.ts`). `businessType=swap` is the most common use case.
 
-**GMX**: flat `skills/[name]/` layout; subdir is two levels shallower than Uniswap. `businessType=contract-call` triggers the Form B (markdown-only) stub generation path.
+**GMX**: flat `skills/[name]/` layout; subdir is two levels shallower than Uniswap. `businessType=contract-call` triggers the Form B (markdown-only) conversion path.
 
-**Morpho**: same flat layout as GMX, but the repo is pre-v1.0 experimental — the schema may drift. For production tests, pin a commit SHA: after `git clone`, run `cd "$TMP_DIR"; git checkout <commit-sha>`. Both `skills/morpho-cli` and `skills/morpho-builder` exist; pick `morpho-cli` (the business skill) for testing — `morpho-builder` is a meta code-generation skill.
+**Morpho**: same flat layout as GMX, but the repo is pre-v1.0 experimental — the schema may drift. For production integrations, pin a commit SHA: after `git clone`, run `cd "$TMP_DIR"; git checkout <commit-sha>`. Both `skills/morpho-cli` and `skills/morpho-builder` exist; pick `morpho-cli` (the business skill) — `morpho-builder` is a meta code-generation skill.
 
 ## Appendix E — Updating the scaffold
 
-The scaffold repo is MIT-licensed and public. Future versions don't require re-downloading a zip — just `cd` into the skill directory and `git pull`:
+The scaffold repo is MIT-licensed and public. Future versions don't require re-downloading — just `cd` into the skill directory and `git pull`:
 
 ```bash
 cd ~/.agents/skills/onchainos-dapp-scaffold
@@ -358,12 +293,6 @@ git pull origin main
 # Check the new version
 grep "^version:" SKILL.md
 ```
-
-> After repo migration, the upstream remote will need to be updated:
-> ```bash
-> git remote set-url origin https://github.com/okx/dapp-connect-agenticwallet
-> git pull origin main
-> ```
 
 ## Appendix F — Troubleshooting
 
@@ -586,10 +515,10 @@ Swap/quote calldata expires (typically 30 s–5 min). Do not cache a `pending_si
 
 ## Failure-report template
 
-When you hit a problem, paste the following into the Lark thread / issue comment:
+When you hit a problem, paste the following into the issue comment or support thread:
 
 ```
-DAPP_CHOICE=<your choice>
+Skill name=<your-skill>
 Stuck at section=
 Full error message=
 OS=macOS XX / Linux XX

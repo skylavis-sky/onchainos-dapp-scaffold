@@ -36,14 +36,14 @@ Output lands at `<your-skill>-onchainos/` adjacent to the input skill (e.g. `~/.
 > The scaffold deliberately does **not** support generating a skill from scratch.
 > Bring an existing DApp skill — the scaffold's job is to convert, not to invent.
 
-## Testing guide
+## Integration guide
 
-End-to-end test steps with three sample DApps (Uniswap / GMX / Morpho) are in **[GUIDE.md](GUIDE.md)**:
+Full developer walkthrough is in **[GUIDE.md](GUIDE.md)**:
 
-- Pick a test endpoint and set environment variables
-- Clone the scaffold + the DApp skill from GitHub
-- Run the upgrade and verify the output
-- Walk through typical scenarios per `businessType`
+- Part 1: run the upgrade against your own skill
+- Part 2: verify the output with self-check commands
+- Part 3: test auth, read-only calls, transaction preview, and live signing
+- Appendix A–F: edge cases, EIP-712 conversion, troubleshooting
 
 ## Supported businessTypes
 
