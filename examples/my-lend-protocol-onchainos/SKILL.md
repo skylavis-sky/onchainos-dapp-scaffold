@@ -136,7 +136,7 @@ Returns the user's current lending position. This is a read-only call — no tra
 
 ---
 
-## OnchainOS routing conversion (auto-injected)
+## OnchainOS routing instructions (read before executing any tool)
 
 > **Runtime LLM MUST read this section before executing any tool.**
 > The original body above contains `walletClient.sendTransaction(...)` examples —

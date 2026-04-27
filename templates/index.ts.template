@@ -22,12 +22,7 @@ type PendingSign = {
   next_action: { tool: string; reason?: string };
 };
 
-// ── EIP-712 Precision Helper ──────────────────────────────────────────────────
-// All uint*/int* fields MUST be serialized with toSafeInt().
-// JS Number loses precision above 2^53-1 (uint64 and above), causing on-chain
-// signature verification to fail silently — extremely hard to debug.
-//
-// EIP-712 precision helper — REQUIRED for all uint*/int* fields.
+// ── EIP-712 Precision Helper — REQUIRED for all uint*/int* fields ────────────
 // JS Number silently loses precision above 2^53-1 (uint64 and above).
 // Using a plain Number for these fields causes on-chain signature verification
 // failures with no client-side error — extremely hard to debug.

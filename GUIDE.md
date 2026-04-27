@@ -94,8 +94,6 @@ ls ~/.claude/skills/ | grep -E "^(onchainos-dapp-scaffold|${DAPP_NAME})"
 
 Scaffold repo: `https://github.com/okx/dapp-connect-agenticwallet` (MIT, public). Use `git clone` directly — no zip download needed.
 
-> **After repo migration**, swap the URL below for `https://github.com/okx/dapp-connect-agenticwallet`.
-
 ```bash
 # Clone the scaffold to the universal skills location
 git clone https://github.com/okx/dapp-connect-agenticwallet \
@@ -592,7 +590,7 @@ When you hit a problem, paste the following into the Lark thread / issue comment
 
 ```
 DAPP_CHOICE=<your choice>
-Stuck at H2 section=
+Stuck at section=
 Full error message=
 OS=macOS XX / Linux XX
 Agent CLI version=$(claude --version || codex --version || openclaw --version)
