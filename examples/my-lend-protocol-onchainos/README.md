@@ -1,13 +1,13 @@
-# test-swap
+# my-lend-protocol-onchainos
 
-Test Swap DApp — scaffold smoke-test fixture.
+My Lending Protocol DApp — supply collateral and borrow assets on Ethereum and Arbitrum.
 
-Supported chains: eip155:1, eip155:137
+Supported chains: eip155:1, eip155:42161
 
 ## Install
 
 ```bash
-npx skills add <your-org>/test-swap
+npx skills add <your-org>/my-lend-protocol-onchainos
 ```
 
 This skill requires onchainOS. On first use, the LLM will automatically run the install command in `## Pre-flight Checks`:
@@ -45,14 +45,16 @@ onchainos wallet login
 
 Trigger tools with natural language in your Agent:
 
-> User: swap 100 USDC for ETH on Ethereum
+> User: supply 100 USDC as collateral on Ethereum
 
 The Agent follows this flow:
 
-1. Calls the DApp tool (e.g. `my_build_swap`) to construct `unsigned_tx`
+1. Calls `supply_asset` to fetch calldata from the protocol API
 2. Tool returns `pending_sign` + `next_action.tool = 'onchainos wallet contract-call'`
 3. Agent routes to onchainOS `onchainos wallet contract-call`
 4. onchainOS signs + broadcasts inside the TEE and returns `txHash`
+
+For a two-step flow (approval required before supply), the tool returns two sequential `pending_sign` objects — one for the approval and one for the supply.
 
 ## Security
 

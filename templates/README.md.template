@@ -2,61 +2,62 @@
 
 {{DESCRIPTION}}
 
-支持的链：{{CHAINS}}
+Supported chains: {{CHAINS}}
 
-## 安装（Claude Code）
-
-把本目录复制或 `git clone` 到 `~/.claude/skills/{{NAME}}/`：
+## Install
 
 ```bash
-git clone <your-repo-url> ~/.claude/skills/{{NAME}}
-# 或：cp -r ./{{NAME}} ~/.claude/skills/{{NAME}}
+npx skills add <your-org>/{{NAME}}
 ```
 
-> `npx skills add <owner>/{{NAME}}` / `/plugin install <owner>/{{NAME}}` 为 Claude Code 插件市场发布后可用的替代命令（待 OKX 官方上架后启用）。
-
-本 Skill 依赖 onchainOS。首次使用时 LLM 会读取 `## Pre-flight Checks` 并在征得用户同意后执行 onchainOS 安装命令（命令由 onchainOS 官方提供，此处为占位）。
-
-## 首次使用认证（邮箱创建钱包）
-
-所有链上签名通过 onchainOS 在本地 TEE 完成。本 DApp 不接触私钥、不保存登录状态。
-
-### 方式 A | 邮箱 OTP（推荐个人用户）
-
-首次调用签名工具时 onchainOS 自动引导：
+This skill requires onchainOS. On first use, the LLM will automatically run the install command in `## Pre-flight Checks`:
 
 ```bash
-onchainos wallet login user@example.com     # 发送验证码
-onchainos wallet verify <6-digit-code>      # 完成登录
-onchainos wallet status                     # 验证 loggedIn: true
+npx skills add okx/onchainos-skills
 ```
 
-### 方式 B | API Key（自动化 / 后端 / CI）
+> Once published to the OKX Skills Marketplace, end users can install with a single `npx skills add` command. Until then, install via `git clone` or `cp -r` into `~/.agents/skills/{{NAME}}/`.
+
+## First-time authentication (email wallet creation)
+
+All on-chain signing is handled by onchainOS inside a local TEE. This DApp never touches private keys or persists login state.
+
+### Option A — Email OTP (recommended for individual users)
+
+onchainOS guides you through login on first signing call:
 
 ```bash
-export OKX_API_KEY=<你的 API Key>
-export OKX_SECRET_KEY=<你的 Secret Key>
-export OKX_PASSPHRASE=<你的 Passphrase>
+onchainos wallet login user@example.com     # sends OTP
+onchainos wallet verify <6-digit-code>      # completes login
+onchainos wallet status                     # confirm loggedIn: true
+```
+
+### Option B — API Key (automation / backend / CI)
+
+```bash
+export OKX_API_KEY=<your API Key>
+export OKX_SECRET_KEY=<your Secret Key>
+export OKX_PASSPHRASE=<your Passphrase>
 onchainos wallet login
 ```
 
-> 凭证申请入口：OKX 开发者门户（链接由技术团队提供）。
+> To obtain credentials, visit the OKX Developer Portal (link provided by the technical team).
 
-## 使用示例
+## Usage example
 
-在 Agent 中以自然语言触发工具：
+Trigger tools with natural language in your Agent:
 
-> 用户：{{EXAMPLE_USER_PROMPT}}
+> User: {{EXAMPLE_USER_PROMPT}}
 
-Agent 会按以下流程工作：
+The Agent follows this flow:
 
-1. 调用本 DApp 工具构造 `unsigned_tx`
-2. 工具返回 `pending_sign` + `next_action.tool = '{{NEXT_ACTION_TOOL}}'`
-3. Agent 路由到 onchainOS 的 `{{NEXT_ACTION_TOOL}}`
-4. onchainOS 在 TEE 内签名 + 广播，返回 `txHash`
+1. Calls the DApp tool to construct `unsigned_tx`
+2. Tool returns `pending_sign` + `next_action.tool = '{{NEXT_ACTION_TOOL}}'`
+3. Agent routes to onchainOS `{{NEXT_ACTION_TOOL}}`
+4. onchainOS signs + broadcasts inside the TEE and returns `txHash`
 
-## 安全说明
+## Security
 
-- 本 DApp 不在任何时机读取、存储或传输用户私钥、助记词、keystore
-- 所有 pending_sign 交易只能经 onchainOS 签名
-- 禁用 `ethers.Wallet` / `signTransaction` / `sendTransaction` 等替代路径
+- This DApp never reads, stores, or transmits the user's private key, seed phrase, or keystore
+- All `pending_sign` transactions are signed exclusively through onchainOS
+- `ethers.Wallet`, `signTransaction`, and `sendTransaction` are forbidden as alternative signing paths

@@ -5,36 +5,36 @@ author: "qa-team"
 chains: [eip155:1, eip155:137]
 
 description: |
-  [onchainOS 依赖]
-  本 Skill 需要 onchainOS 完成链上签名。
+  [onchainOS dependency]
+  This Skill requires onchainOS for on-chain signing.
 
-  [签名约束]
-  本 Skill 返回的所有 pending_sign 交易，必须且只能通过
-  onchainOS 工具完成签名。禁止使用本地私钥 / sendTransaction
-  / ethers.Wallet 等任何替代方式。
+  [signing constraint]
+  All pending_sign transactions returned by this Skill MUST be signed
+  exclusively through onchainOS tools. Local private keys, sendTransaction,
+  ethers.Wallet, and any equivalent are forbidden.
 
-  Test Swap DApp —— 脚手架跑通验证用。
+  Test Swap DApp — scaffold smoke-test fixture.
 
 requiredTools:
   - name: onchainos wallet contract-call
     provider: onchainos
     install: "npx skills add okx/onchainos-skills"
-    reason: "接收 calldata → TEE 签名 → 广播"
+    reason: "receives calldata → TEE signing → broadcast"
   - name: onchainos gateway broadcast
     provider: onchainos
     install: "npx skills add okx/onchainos-skills"
-    reason: "广播已签名交易到链上"
+    reason: "broadcasts signed transactions on-chain"
 
 tools:
   - name: my_build_swap
-    description: "构造 swap 的 unsigned_tx，返回 pending_sign"
+    description: "Constructs the swap unsigned_tx and returns pending_sign"
 ---
 
 ## Pre-flight Checks
-1. 检测 onchainos wallet contract-call, onchainos gateway broadcast 工具是否可用
-2. 未安装则执行: npx skills add okx/onchainos-skills
-3. 验证安装成功
+1. Verify `onchainos wallet contract-call` and `onchainos gateway broadcast` are available
+2. If not installed, run: `npx skills add okx/onchainos-skills`
+3. Confirm installation succeeded
 
 ## Signing Constraint
-所有 pending_sign 交易只能通过 next_action.tool 指定的 onchainOS 工具签名。
-DApp 代码中严禁出现本地私钥、signTransaction、ethers.Wallet、sendTransaction。
+All `pending_sign` transactions must be signed only by the onchainOS tool named in `next_action.tool`.
+Local private keys, `signTransaction`, `ethers.Wallet`, and `sendTransaction` are forbidden in DApp code.
