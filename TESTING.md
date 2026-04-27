@@ -167,7 +167,7 @@ grep -A3 "^name:" ~/.claude/skills/"${DAPP_NAME}-onchainos"/SKILL.md | head -10
 # Then prompt: list my local skills whose name starts with $DAPP_NAME
 ```
 
-## Part 2 — Run scenario tests by businessType
+## Part 3 — Run scenario tests by businessType
 
 Pick the DAPP_CHOICE you set, then copy the matching prompts from below. Three typical scenarios per DApp.
 

@@ -9,7 +9,7 @@ This guide walks a DApp developer through upgrading an existing DApp skill to ro
 | Situation | Where to go |
 |-----------|-------------|
 | You have an existing DApp skill and want to add Onchain OS signing | **This guide** — Parts 1–3 |
-| You want to write `pending_sign` wrappers by hand without the scaffold | Skip to [Part 3](#part-3--test-your-upgraded-skill) for the expected output format, then [Appendix F](#appendix-f--troubleshooting) for runtime errors |
+| You want to write `pending_sign` wrappers by hand without the scaffold | See [SKILL.md](SKILL.md) for the `pending_sign` contract and routing rules, then [Part 3](#part-3--test-your-upgraded-skill) to test and [Appendix F](#appendix-f--troubleshooting) for runtime errors |
 | Something went wrong after running the scaffold | [Appendix F — Troubleshooting](#appendix-f--troubleshooting) |
 
 ## Prerequisites
@@ -53,6 +53,8 @@ The scaffold detects whether your source is [Form A or Form B](README.md#quick-s
 
 The original skill is untouched. You can roll back at any time by removing the `-onchainos` directory.
 
+> After the upgrade completes, restart your agent again so it picks up the new `<your-skill>-onchainos` skill — see Part 3.
+
 ## Part 2 — Verify the output
 
 After the upgrade, run these commands to confirm the output is well-formed:
@@ -64,10 +66,10 @@ SKILL_DIR=~/.agents/skills/<your-skill>-onchainos
 ls "$SKILL_DIR/SKILL.md"
 
 # Four required markers are present
-grep -c "\[Onchain OS dependency\]" "$SKILL_DIR/SKILL.md"  # Expected: 1
-grep -c "\[signing constraint\]"   "$SKILL_DIR/SKILL.md"  # Expected: 1
-grep -c "## Pre-flight Checks"     "$SKILL_DIR/SKILL.md"  # Expected: 1
-grep -c "## Signing Constraint"    "$SKILL_DIR/SKILL.md"  # Expected: 1
+grep -c '\[Onchain OS dependency\]' "$SKILL_DIR/SKILL.md"  # Expected: 1
+grep -c '\[signing constraint\]'   "$SKILL_DIR/SKILL.md"  # Expected: 1
+grep -c '## Pre-flight Checks'     "$SKILL_DIR/SKILL.md"  # Expected: 1
+grep -c '## Signing Constraint'    "$SKILL_DIR/SKILL.md"  # Expected: 1
 
 # Template variables were all substituted
 grep -c "{{" "$SKILL_DIR/SKILL.md"  # Expected: 0
