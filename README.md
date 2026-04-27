@@ -1,84 +1,86 @@
 # onchainos-dapp-scaffold
 
-> 一键生成 OnchainOS DApp Skill 的脚手架。说一句话，产出可直接注册到 Claude Code 的三方 DApp Skill。
+> **🚧 Migration notice**: This repo is moving from `skylavis-sky/onchainos-dapp-scaffold` to `okx/dapp-connect-agenticwallet`. Bookmark the new URL once it's live — the install commands below will be swept to the new URL after migration.
 
-## 快速开始
+> Scaffolding for OnchainOS DApp Skills. Take an **existing** DApp skill and have the scaffold upgrade it into one that routes signing/broadcasting through OnchainOS.
 
-### 安装脚手架
+## Quick start
+
+### Install the scaffold
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/BlueBd/test-dapp-skill-scaffolding/main/install.sh | sh
+curl -fsSL https://raw.githubusercontent.com/skylavis-sky/onchainos-dapp-scaffold/main/install.sh | sh
 ```
 
-安装完成后会落到 `~/.claude/skills/onchainos-dapp-scaffold/`，重启 Claude Code 即可发现。
+Installs to `~/.agents/skills/onchainos-dapp-scaffold/` (Claude Code, OpenClaw, Codex, Cursor, etc. all pick it up). Restart your AI agent after install.
 
-### 使用（Mode A · 从零生成）
+### Use it
 
-在 Claude Code 对话框直接说：
-
-```
-生成 DApp Skill：名字 my-dex-swap，业务 swap
-```
-
-脚手架会在 `~/.claude/skills/my-dex-swap/` 生成 `SKILL.md` + `index.ts` + `README.md`，填好一次 `TODO [三方]` 即可注册使用。
-
-### 使用（Mode B · 升级已有 DApp Skill）
+Bring an existing DApp skill — your own, or a fork of one — and ask your agent:
 
 ```
-用脚手架升级 /path/to/existing-dapp-skill
+Use the scaffold to upgrade /path/to/your-existing-dapp-skill
 ```
 
-支持两种形态：
-- **Form A**：源目录含 `index.ts`（有业务函数）→ 注入 onchainOS 路由段落
-- **Form B**：源目录纯 markdown（无 index.ts）→ 生成带 `TODO [三方]` 占位的 stub
+The scaffold supports two source forms:
 
-## 测试指南
+| Source form | Layout | What the scaffold does |
+|-------------|--------|------------------------|
+| **Form A** | `SKILL.md` + `index.ts` with exported business functions | Wraps each transaction/signing tool with a `pending_sign` shell; read-only tools pass through. |
+| **Form B** | `SKILL.md` only (or `index.ts` with no exports) | Generates a `TODO [third-party]` stub for each tool; you fill in the calldata-construction logic. |
 
-详细的端到端测试步骤（含 Uniswap / GMX / Morpho 三个 DApp 样例）见 **[GUIDE.md](GUIDE.md)**：
+Output lands at `~/.claude/skills/<your-skill>-onchainos/`. Original skill is untouched, so you can roll back any time.
 
-- 选择 DApp 测试端点并配置环境变量
-- 从 GitHub 克隆脚手架 + DApp skill
-- 触发 Mode B 升级并验证输出
-- 按 businessType 运行典型测试场景
+> The scaffold deliberately does **not** support generating a skill from scratch.
+> Bring an existing DApp skill — the scaffold's job is to convert, not to invent.
 
-## 支持的 businessType
+## Testing guide
 
-| businessType | 下一步工具 | 典型场景 |
+End-to-end test steps with three sample DApps (Uniswap / GMX / Morpho) are in **[GUIDE.md](GUIDE.md)**:
+
+- Pick a test endpoint and set environment variables
+- Clone the scaffold + the DApp skill from GitHub
+- Run the upgrade and verify the output
+- Walk through typical scenarios per `businessType`
+
+## Supported businessTypes
+
+| businessType | Next-step tool | Typical use |
 |---|---|---|
-| `swap` | `onchainos wallet contract-call` | DEX 换币 |
-| `transfer` | `onchainos wallet send` | 转账 |
-| `contract-call` | `onchainos wallet contract-call` | 通用合约调用 |
+| `swap` | `onchainos wallet contract-call` | DEX swaps |
+| `transfer` | `onchainos wallet send` | Native / ERC-20 transfers |
+| `contract-call` | `onchainos wallet contract-call` | Generic contract calls |
 | `sign-message` | `onchainos wallet sign-message` | personalSign / EIP-712 |
 
-所有 `pending_sign` 交易最终由 [`okx/onchainos-skills`](https://github.com/okx/onchainos-skills) 的 TEE CLI 完成签名；脚手架生成的 DApp Skill 严禁出现本地私钥 / `ethers.Wallet` / `sendTransaction`。
+All `pending_sign` transactions are signed by the [`okx/onchainos-skills`](https://github.com/okx/onchainos-skills) TEE CLI. Generated skills must **not** contain local private keys, `ethers.Wallet`, `signTransaction`, or any other local-signing code — the scaffold rejects upgrades that detect these.
 
-## 仓库结构
+## Repo layout
 
 ```
 .
-├── SKILL.md                 # 脚手架本体（Agent 指令 + 工作流）
-├── INSTALL-DAPP.md          # 三方 DApp 安装最小说明
-├── install.sh               # 一键安装脚本
-├── templates/               # 3 个模板：SKILL.md / index.ts / README.md
-└── examples/                # 两个完整样例 + 4 个自动化测试
-    ├── my-dex-swap/         # swap 样例
-    ├── test-swap/           # 含 .verify.py / .render.py 的测试样例
-    ├── .benchmark.py        # 4 businessType × 12 assertion
-    └── .benchmark_ext.py    # multi-tool stress + negative + timing
+├── SKILL.md                 # Scaffold itself (agent instructions + workflow)
+├── INSTALL-DAPP.md          # Minimal install notes for third-party DApps
+├── install.sh               # One-line installer
+├── templates/               # 3 templates: SKILL.md / index.ts / README.md
+└── examples/                # 2 complete samples + 4 automated tests
+    ├── my-dex-swap/         # Swap sample
+    ├── test-swap/           # Sample with .verify.py / .render.py tests
+    ├── .benchmark.py        # 4 businessTypes × 12 assertions
+    └── .benchmark_ext.py    # Multi-tool stress + negative + timing
 ```
 
-## 本地验证
+## Local verification
 
 ```bash
 python3 ~/.claude/skills/onchainos-dapp-scaffold/examples/.benchmark.py
 python3 ~/.claude/skills/onchainos-dapp-scaffold/examples/.benchmark_ext.py
 ```
 
-两个脚本现版本分别跑 48/48 + 6/6 assertion，3/3 negative 检出。
+Current benchmarks: 48/48 + 6/6 assertions, 3/3 negative cases caught.
 
-## 自定义上游
+## Custom upstream
 
-如果你 fork 了这个仓库：
+If you've forked the scaffold:
 
 ```bash
 ONCHAINOS_SCAFFOLD_REPO=https://github.com/<your>/<fork>.git \

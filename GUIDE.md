@@ -1,27 +1,31 @@
-# 🎯 概览
+# Scaffold Testing Guide
 
-当前支持 3 个三方 DApp 测试端点。不同 DApp 对应不同 businessType，覆盖脚手架 Mode B 的多条生成路径。
+> **🚧 Migration notice**: This repo is moving from `skylavis-sky/onchainos-dapp-scaffold` to `okx/dapp-connect-agenticwallet`. Bookmark the new URL once it's live. Install commands below use the currently-active URL; they'll be swept to the new one after migration.
 
-- Uniswap · businessType=swap · DEX 换币 · 简单
-- GMX · businessType=contract-call · 永续合约 / LP · 中等复杂度
-- Morpho · businessType=contract-call · 借贷 / 存款 · 中等 · ⚠ pre-v1.0 实验性
+## Overview
 
-❌ 不支持：1inch（是 MCP 指针 skill，不是独立 Claude skill）。详见附录 A。
+Three third-party DApp test endpoints are currently supported. Each maps to a different `businessType`, exercising a different scaffold upgrade path.
 
-## ⚙ 使用说明
+- **Uniswap** · `businessType=swap` · DEX swap · simple
+- **GMX** · `businessType=contract-call` · perp / LP · medium complexity
+- **Morpho** · `businessType=contract-call` · lending / deposit · medium · ⚠ pre-v1.0 experimental
 
-1. 步骤 0 设置 DAPP_CHOICE（三选一）
-2. 依次粘贴后续代码块到同一个终端会话
-3. 保持终端窗口不关闭 · 所有代码块共享 shell 环境变量
-4. 中间有一次重启 Claude Code（已标注 ⏸）
+❌ **Not supported: 1inch** (it's an MCP-pointer skill, not a standalone Claude skill — see Appendix A).
 
-## 🚀 步骤 0 · 选择 DApp 测试端点
+## How to use this guide
+
+1. Step 0 sets `DAPP_CHOICE` (pick one)
+2. Paste subsequent code blocks into the same terminal session, in order
+3. Keep the terminal open — every block shares shell environment variables
+4. There's one Claude Code restart in the middle (marked ⏸)
+
+## Step 0 — Pick a DApp test endpoint
 
 ```bash
-# 📌 三选一，改这一行
+# 📌 Pick one — edit this line only
 export DAPP_CHOICE=uniswap
 
-# 下面 case 自动按选择设置其他变量
+# The case below auto-sets the other variables
 case "$DAPP_CHOICE" in
   uniswap)
     export DAPP_REPO_URL=https://github.com/Uniswap/uniswap-ai
@@ -40,14 +44,14 @@ case "$DAPP_CHOICE" in
     export DAPP_NAME=my-morpho-cli
     export SKILL_SUBDIR=skills/morpho-cli
     export BUSINESS_TYPE=contract-call
-    echo "⚠ Morpho 仓库是 pre-v1.0 实验性，API 可能变动"
+    echo "⚠ Morpho repo is pre-v1.0 experimental; APIs may shift"
     ;;
   *)
-    echo "❌ DAPP_CHOICE 必须是 uniswap / gmx / morpho"
+    echo "❌ DAPP_CHOICE must be uniswap / gmx / morpho"
     ;;
 esac
 
-# 自检：打印当前配置
+# Sanity check: print current config
 echo "DAPP_CHOICE=$DAPP_CHOICE"
 echo "DAPP_REPO_URL=$DAPP_REPO_URL"
 echo "DAPP_NAME=$DAPP_NAME"
@@ -55,150 +59,165 @@ echo "SKILL_SUBDIR=$SKILL_SUBDIR"
 echo "BUSINESS_TYPE=$BUSINESS_TYPE"
 ```
 
-## 🧹 重置测试环境（反复测试前跑一遍）
+## Reset the test environment (run before each re-test)
 
 ```bash
-# 1. 移除脚手架
-rm -rf ~/.claude/skills/onchainos-dapp-scaffold
+# 1. Remove the scaffold (both canonical location and Claude symlink)
+rm -rf ~/.agents/skills/onchainos-dapp-scaffold
+rm -f  ~/.claude/skills/onchainos-dapp-scaffold
 
-# 2. 移除当前 DApp 的 skill（升级前 + 升级后两种命名）
+# 2. Remove the current DApp skill (both pre- and post-upgrade names)
 rm -rf ~/.claude/skills/"$DAPP_NAME"
 rm -rf ~/.claude/skills/"${DAPP_NAME}-onchainos"
 
-# 3. 清理所有 DApp 的克隆临时目录
+# 3. Clean clone temp dirs for all DApps
 rm -rf /tmp/uniswap-monorepo /tmp/gmx-monorepo /tmp/morpho-monorepo
 
-# 4. 卸载 onchainOS CLI
+# 4. Uninstall onchainOS CLI
 rm -rf ~/.local/bin/onchainos
 rm -rf ~/.onchainos
 
-# 5. 清 shell 环境变量（保留 DAPP_* 以便复用）
+# 5. Clear shell env vars (keep DAPP_* for re-use)
 unset ONCHAINOS_TOKEN
 unset ONCHAINOS_SCAFFOLD_REPO
 
-# 6. 自检
+# 6. Sanity check
 which onchainos
-# 预期输出: onchainos not found
+# Expected: onchainos not found
 
 ls ~/.claude/skills/ | grep -E "^(onchainos-dapp-scaffold|${DAPP_NAME})"
-# 预期输出: 空行
+# Expected: empty
 
-# ⚠ 清理 skill 目录后必须重启 Claude Code，否则旧注册表仍在
+# ⚠ After deleting skill directories, restart your AI agent — otherwise
+#   the old skill registry is still cached.
 ```
 
-## 📦 Part 1 · 从 GitHub 克隆脚手架
+## Part 1a — Clone the scaffold from GitHub
 
-脚手架 GitHub 仓库：https://github.com/skylavis-sky/onchainos-dapp-scaffold （MIT、公开）。无需下载附件，直接 git clone 即可。
+Scaffold repo: `https://github.com/skylavis-sky/onchainos-dapp-scaffold` (MIT, public). Use `git clone` directly — no zip download needed.
+
+> **After repo migration**, swap the URL below for `https://github.com/okx/dapp-connect-agenticwallet`.
 
 ```bash
-# 克隆脚手架到 Claude Code 的 skills 目录
-git clone https://github.com/skylavis-sky/onchainos-dapp-scaffold ~/.claude/skills/onchainos-dapp-scaffold
+# Clone the scaffold to the universal skills location
+git clone https://github.com/skylavis-sky/onchainos-dapp-scaffold \
+  ~/.agents/skills/onchainos-dapp-scaffold
 
-# 自检：确认 SKILL.md 存在
-ls ~/.claude/skills/onchainos-dapp-scaffold/SKILL.md
-# 预期输出: SKILL.md 路径
+# Symlink into Claude Code's skills dir so Claude picks it up too
+mkdir -p ~/.claude/skills
+ln -sfn ~/.agents/skills/onchainos-dapp-scaffold \
+        ~/.claude/skills/onchainos-dapp-scaffold
 
-# 可选：查看脚手架版本
-grep "^version:" ~/.claude/skills/onchainos-dapp-scaffold/SKILL.md
+# Sanity check: confirm SKILL.md exists
+ls ~/.agents/skills/onchainos-dapp-scaffold/SKILL.md
+# Expected: SKILL.md path
+
+# Optional: check the scaffold version
+grep "^version:" ~/.agents/skills/onchainos-dapp-scaffold/SKILL.md
 ```
 
-## 📥 Part 1 · 克隆 + 复制 DApp skill
+## Part 1b — Clone + copy the DApp skill
 
 ```bash
-# 1. 克隆到临时目录
+# 1. Clone to a temp directory
 TMP_DIR=/tmp/"$DAPP_CHOICE"-monorepo
 rm -rf "$TMP_DIR"
 git clone "$DAPP_REPO_URL" "$TMP_DIR"
 
-# 2. 复制目标 skill 子目录
+# 2. Copy the target skill subdirectory
 cp -r "$TMP_DIR"/"$SKILL_SUBDIR" ~/.claude/skills/"$DAPP_NAME"
 
-# 3. 安全步骤：改写内部 SKILL.md 的 frontmatter name，避免与已装同名 skill 冲突
+# 3. Safety step: rewrite the inner SKILL.md frontmatter `name`
+#    to avoid colliding with an already-installed skill of the same name
 sed -i.bak "s/^name: .*/name: $DAPP_NAME/" ~/.claude/skills/"$DAPP_NAME"/SKILL.md
 rm ~/.claude/skills/"$DAPP_NAME"/SKILL.md.bak
 
-# 4. 验证目录结构
+# 4. Verify the directory layout
 ls ~/.claude/skills/"$DAPP_NAME"/SKILL.md
 
-# 5. 验证 frontmatter name 已改写
+# 5. Verify the frontmatter `name` was rewritten
 grep "^name:" ~/.claude/skills/"$DAPP_NAME"/SKILL.md
-# 预期输出: name: [DAPP_NAME 的值]
+# Expected: name: <whatever DAPP_NAME is>
 ```
 
-## ⏸ Part 1 → Part 2 · 重启 Claude Code
+## ⏸ Part 1 → Part 2 — Restart Claude Code
 
-安装完脚手架和 DApp skill 后 Claude Code 必须重启，新 skill 才能被注册表发现。重启后执行下面命令自动触发 Mode B 升级。
+After installing the scaffold and DApp skill, Claude Code must be restarted so the skill registry picks them up. After the restart, run the command below to trigger the upgrade flow.
+
+> The example uses `claude -p` (Claude Code's headless flag). On OpenClaw / Codex / other agents, the equivalent is to paste the trigger phrase into the agent's prompt box after restarting.
 
 ```bash
-# 重启 Claude Code 后执行（headless 一键式）
-claude -p "用 onchainos-dapp-scaffold 升级 DApp Skill：路径 ~/.claude/skills/$DAPP_NAME，业务类型 $BUSINESS_TYPE"
+# After restarting Claude Code (headless one-shot)
+claude -p "Use the scaffold to upgrade the DApp Skill at ~/.claude/skills/$DAPP_NAME, businessType=$BUSINESS_TYPE"
 
-# 或者重启后打开对话框，把下面这句变量替换成实际值后粘贴：
-# 用 onchainos-dapp-scaffold 升级 DApp Skill：路径 ~/.claude/skills/my-uniswap-swap，业务类型 swap
+# Or, after restart, open the chat box and paste the command after substituting variables, e.g.:
+# Use the scaffold to upgrade the DApp Skill at ~/.claude/skills/my-uniswap-swap, businessType=swap
 ```
 
-## ✅ Part 2 · 验证升级结果
+## Part 2 — Verify the upgrade
 
 ```bash
-# 确定性检查：升级后的 skill 应存在
+# Determinism check: the upgraded skill should exist
 ls ~/.claude/skills/"${DAPP_NAME}-onchainos"/SKILL.md
-# 预期输出: SKILL.md 路径
+# Expected: SKILL.md path
 
-# 查看 frontmatter 确认规范化
+# View frontmatter to confirm the spec sections were applied
 grep -A3 "^name:" ~/.claude/skills/"${DAPP_NAME}-onchainos"/SKILL.md | head -10
 
-# 可选：让 Claude 列出新 skill
+# Optional: ask Claude to list the new skill
 # claude
-# 然后问: 列出我本地名字以 $DAPP_NAME 开头的 skills
+# Then prompt: list my local skills whose name starts with $DAPP_NAME
 ```
 
-## 🧪 Part 2 · 按 businessType 执行测试
+## Part 2 — Run scenario tests by businessType
 
-根据你选的 DAPP_CHOICE，从下面对应章节复制测试 prompt 运行。每个 DApp 给 3 条典型场景。
+Pick the DAPP_CHOICE you set, then copy the matching prompts from below. Three typical scenarios per DApp.
 
-### Uniswap · businessType=swap
+### Uniswap · `businessType=swap`
 
 ```bash
-claude -p "用 my-uniswap-swap-onchainos 把 100 USDC 换成 ETH，链 Ethereum，滑点 0.5%"
+claude -p "Use my-uniswap-swap-onchainos to swap 100 USDC for ETH on Ethereum at 0.5% slippage"
 
-claude -p "用 my-uniswap-swap-onchainos 查 1 ETH 能换多少 USDC，链 Ethereum，只报价不广播"
+claude -p "Use my-uniswap-swap-onchainos to quote how much USDC I can get for 1 ETH on Ethereum, quote-only no broadcast"
 
-claude -p "用 my-uniswap-swap-onchainos 在 Base 上把 0.01 WETH 换成 USDC"
+claude -p "Use my-uniswap-swap-onchainos to swap 0.01 WETH for USDC on Base"
 ```
 
-### GMX · businessType=contract-call · 永续合约
+### GMX · `businessType=contract-call` · perp futures
 
 ```bash
-claude -p "用 my-gmx-trading-onchainos 在 Arbitrum 开 ETH 多头 5x 杠杆，仓位 100 USDC，链 Arbitrum"
+claude -p "Use my-gmx-trading-onchainos to open a 5x ETH long on Arbitrum with 100 USDC margin"
 
-claude -p "用 my-gmx-trading-onchainos 在 Arbitrum 查 BTC 永续当前资金费率和标记价"
+claude -p "Use my-gmx-trading-onchainos to fetch the current funding rate and mark price for BTC perp on Arbitrum"
 
-claude -p "用 my-gmx-trading-onchainos 为现有 ETH 多头仓位设置止损价 2500"
+claude -p "Use my-gmx-trading-onchainos to set a stop-loss at 2500 on my existing ETH long"
 ```
 
-### Morpho · businessType=contract-call · 借贷
+### Morpho · `businessType=contract-call` · lending
 
 ```bash
-claude -p "用 my-morpho-cli-onchainos 在 Base 上把 1000 USDC 存入 Morpho Blue 最高 APY 池"
+claude -p "Use my-morpho-cli-onchainos to deposit 1000 USDC into the highest-APY Morpho Blue pool on Base"
 
-claude -p "用 my-morpho-cli-onchainos 查我在 Ethereum 上的 Morpho 仓位和当前健康因子"
+claude -p "Use my-morpho-cli-onchainos to check my Morpho positions and current health factor on Ethereum"
 
-claude -p "用 my-morpho-cli-onchainos 在 Base 上借 500 USDC 用 ETH 作抵押，目标 LTV 50%"
+claude -p "Use my-morpho-cli-onchainos to borrow 500 USDC against ETH collateral on Base, target LTV 50%"
 ```
 
-预期行为：升级后的 skill 返回 pending_sign 交易对象（含 unsigned_tx + next_action.tool 指向 onchainos wallet contract-call），下一步由 onchainOS CLI 接管签名 + 广播。
+**Expected behavior:** the upgraded skill returns a `pending_sign` transaction object (containing `unsigned_tx` + `next_action.tool` pointing to `onchainos wallet contract-call`). The onchainOS CLI takes over from there: signing + broadcasting.
 
-## 📎 附录 A · 为什么 1inch 不走这个流程
+## Appendix A — Why 1inch doesn't go through this flow
 
-1inch 的 1inch/1inch-ai 仓库里 skills/1inch-mcp-server/SKILL.md 是一个 MCP 指针 skill，指向 https://api.1inch.com/mcp/protocol 远程服务。它没有本地 TS index.ts 可升级，需要 1inch Business Portal API key，所有签名逻辑在远程服务器。脚手架 Mode B 的升级目标是含 pending_sign 函数的本地 skill，架构不匹配。建议直接当 MCP server 使用，不走脚手架流程。
+The `1inch/1inch-ai` repo's `skills/1inch-mcp-server/SKILL.md` is an **MCP-pointer skill** that points to the remote `https://api.1inch.com/mcp/protocol` service. It has no local `index.ts` to upgrade, requires a 1inch Business Portal API key, and runs all signing logic on a remote server.
 
-## 📎 附录 B · EIP-712 结构转换实战（Uniswap） 「实战」
+The scaffold's upgrade flow targets local skills with `pending_sign`-shaped functions; the architectures don't match. Use 1inch directly as an MCP server instead — don't run it through the scaffold.
 
-> 适用场景：三方 DApp API 返回非标准 EIP-712 结构时（如 Uniswap Trading API 的 `permitData`），需要先转换再送给 `onchainos wallet sign-message`。
+## Appendix B — EIP-712 structure conversion (Uniswap walkthrough)
 
-### 问题描述
+> When third-party DApp APIs return a non-standard EIP-712 structure (e.g. Uniswap Trading API's `permitData`), you must convert before passing to `onchainos wallet sign-message`.
 
-Uniswap Trading API 返回的 `permitData` 结构为：
+### The problem
+
+Uniswap Trading API returns `permitData` in this shape:
 
 ```json
 {
@@ -208,7 +227,7 @@ Uniswap Trading API 返回的 `permitData` 结构为：
 }
 ```
 
-但 `onchainos wallet sign-message --type eip712` 要求标准格式：
+But `onchainos wallet sign-message --type eip712` requires the standard EIP-712 shape:
 
 ```json
 {
@@ -219,12 +238,12 @@ Uniswap Trading API 返回的 `permitData` 结构为：
 }
 ```
 
-不转换直接发送会报错：`missing msgHash`（误导性错误，实为结构不合法）。
+Sending without conversion fails with `missing msgHash` (misleading — the actual issue is structural).
 
-### jq 转换命令
+### `jq` conversion
 
 ```bash
-PERMIT_DATA='<从 API 拿到的 permitData JSON 字符串>'
+PERMIT_DATA='<permitData JSON string from the API>'
 
 TYPED_DATA=$(echo "$PERMIT_DATA" | jq '{
   types: (
@@ -247,45 +266,45 @@ onchainos wallet sign-message \
   --chain eip155:1
 ```
 
-### 通用转换规则
+### Conversion rule of thumb
 
-| 原字段 | 标准字段 | 说明 |
-|--------|----------|------|
-| `values` | `message` | 直接重命名 |
-| `types` | `types` (merge) | 补充 `EIP712Domain` 类型定义 |
-| `domain` | `domain` | 原样保留 |
-| 无 `primaryType` | `primaryType` | 取 `types` 里排除 `EIP712Domain` 的第一个 key |
+| Original field | Standard field | Notes |
+|----------------|----------------|-------|
+| `values` | `message` | Direct rename |
+| `types` | `types` (merge) | Add the `EIP712Domain` type definition |
+| `domain` | `domain` | Pass through |
+| (missing) `primaryType` | `primaryType` | First key in `types` excluding `EIP712Domain` |
 
-### Mode B 注入规则（v1.3）
+### Scaffold injection rule (v1.3)
 
-B3b 路由改造章节中，当扫描到以下模式时，**必须**自动注入此附录引用：
+In the routing-conversion section, when the scanner detects this pattern, the scaffold **must** auto-inject a reference to this appendix:
 
 ```
-- API 返回字段含 `permitData` / `typedData` / `signatureData`
-- 且代码含 `walletClient.signTypedData` / `signTypedData(...)` / `eth_signTypedData_v4`
+- API returns a field named `permitData` / `typedData` / `signatureData`
+- AND code uses `walletClient.signTypedData` / `signTypedData(...)` / `eth_signTypedData_v4`
 ```
 
 ---
 
-## 📎 附录 C · EIP-712 数字字段精度规范 「预防」
+## Appendix C — EIP-712 numeric-field precision rules (preventive)
 
-> 预防性规范。适用于所有需要 EIP-712 签名的 DApp——在写 Mode B 转换代码时必须遵守。
+> Preventive rules that apply to every DApp doing EIP-712 signing — must be followed when writing scaffold conversion code.
 
-### 问题描述
+### The problem
 
-EIP-712 的 `uint64` 及以上整型字段若用 JavaScript `Number` 传输，会因 `Number.MAX_SAFE_INTEGER = 2^53 - 1` 产生**静默精度丢失**，导致签名 hash 与链上验证不匹配，且错误极难复现（表现为链上验证失败，而非前端报错）。
+EIP-712 `uint64`-and-larger integer fields, if sent as JavaScript `Number`, hit `Number.MAX_SAFE_INTEGER = 2^53 − 1` and **silently lose precision**. The signature hash mismatches what the chain validates, and the failure is hard to reproduce (it shows up as on-chain validation failure, not a frontend error).
 
-| 类型 | 安全范围 | 使用 Number 是否安全 |
-|------|----------|----------------------|
-| `uint8` / `uint16` / `uint32` | 最大 4B | ✅ 安全 |
-| `uint64` | 最大 ~1.8×10^19 | ❌ 可能丢精度 |
-| `uint128` / `uint256` | 远超安全整数 | ❌ 必须用 BigInt |
-| `int*` | 同上规则 | 同上 |
+| Type | Safe range | Number safe? |
+|------|------------|--------------|
+| `uint8` / `uint16` / `uint32` | up to 4B | ✅ Safe |
+| `uint64` | up to ~1.8×10¹⁹ | ❌ May lose precision |
+| `uint128` / `uint256` | far exceeds Number.MAX_SAFE_INTEGER | ❌ Must use BigInt |
+| `int*` | same rules | same |
 
-### 规范写法
+### Correct pattern
 
 ```typescript
-// ❌ 错误 — 可能静默丢精度
+// ❌ Wrong — may silently lose precision
 const typedData = {
   message: {
     sigDeadline: permitData.values.sigDeadline,   // JS Number
@@ -293,7 +312,7 @@ const typedData = {
   }
 };
 
-// ✅ 正确 — 所有 uint*/int* 字段统一转 BigInt string
+// ✅ Right — every uint*/int* field consistently goes through BigInt-string
 function toSafeInt(v: unknown): string {
   if (v === null || v === undefined) throw new Error(`EIP-712 field is null`);
   return BigInt(String(v)).toString();
@@ -307,54 +326,60 @@ const typedData = {
 };
 ```
 
-### jq 端的等价处理
+### Equivalent in `jq`
 
-当用 jq 构造 `message` 字段时，对任何来自 API 的数字字段：
+When constructing `message` via `jq`, force every numeric field from the API to a string (jq's `tostring` preserves precision):
 
 ```bash
-# 如果字段是 JSON number，转成 string（jq 的 tostring 保留精度）
 echo "$PERMIT_DATA" | jq '.values | .sigDeadline |= tostring | .nonce |= tostring'
 ```
 
-### Mode B 自动检测规则
+### Scaffold auto-detection
 
-B4b / B4a 生成 index.ts 时，对每个 EIP-712 `message` 字段的赋值，**Agent 必须检查类型声明**：
-- 若原 API 返回类型为 `number` 且 EIP-712 类型为 `uint64` 或更大 → 自动包装 `BigInt(...).toString()`
-- 若无法确认类型 → 在 `TODO [三方]` 注释里提示开发者手动确认
+When generating `index.ts`, for every assignment to an EIP-712 `message` field, the scaffold **must** check the type:
+
+- If the API return type is `number` AND the EIP-712 type is `uint64` or larger → auto-wrap with `BigInt(...).toString()`
+- If the type can't be determined → leave a `TODO [third-party]` comment asking the developer to confirm manually
 
 ---
 
-## 📎 附录 D · 各 DApp 的差异说明
+## Appendix D — DApp-specific notes
 
-Uniswap: 标准 monorepo 结构，skill 在 packages/plugins/[plugin]/skills/[name]/。直接 cp 即可，scaffold Form A 升级路径，businessType=swap 最常见。
+**Uniswap**: standard monorepo layout; skills live under `packages/plugins/[plugin]/skills/[name]/`. Direct `cp` works. Form A upgrade path (since the source has `index.ts`). `businessType=swap` is the most common use case.
 
-GMX: 平层 skills/[name]/ 结构，subdir 比 Uniswap 浅 2 级。businessType=contract-call 触发 Mode B Form B 存根生成。
+**GMX**: flat `skills/[name]/` layout; subdir is two levels shallower than Uniswap. `businessType=contract-call` triggers the Form B (markdown-only) stub generation path.
 
-Morpho: 同 GMX 平层结构，但仓库 pre-v1.0 实验性状态，schema 可能漂移。生产测试建议 pin commit SHA：在 git clone 后加 cd "$TMP_DIR"; git checkout [commit-sha]。skills/morpho-cli 和 skills/morpho-builder 都在，前者是业务 skill（测试目标选前者），后者是代码生成 meta skill。
+**Morpho**: same flat layout as GMX, but the repo is pre-v1.0 experimental — the schema may drift. For production tests, pin a commit SHA: after `git clone`, run `cd "$TMP_DIR"; git checkout <commit-sha>`. Both `skills/morpho-cli` and `skills/morpho-builder` exist; pick `morpho-cli` (the business skill) for testing — `morpho-builder` is a meta code-generation skill.
 
-## 📎 附录 E · 脚手架更新
+## Appendix E — Updating the scaffold
 
-脚手架仓库是 MIT 公开仓库，后续版本更新无需重新下载 zip，直接 cd 到 skill 目录 git pull 即可：
+The scaffold repo is MIT-licensed and public. Future versions don't require re-downloading a zip — just `cd` into the skill directory and `git pull`:
 
 ```bash
-cd ~/.claude/skills/onchainos-dapp-scaffold
+cd ~/.agents/skills/onchainos-dapp-scaffold
 git pull origin main
 
-# 查看最新版本号
+# Check the new version
 grep "^version:" SKILL.md
 ```
 
-## 📋 失败反馈模板
+> After repo migration, the upstream remote will need to be updated:
+> ```bash
+> git remote set-url origin https://github.com/okx/dapp-connect-agenticwallet
+> git pull origin main
+> ```
 
-测试中遇到问题，按下面格式反馈（粘到 Lark 评论 / 群）：
+## Failure-report template
+
+When you hit a problem, paste the following into the Lark thread / issue comment:
 
 ```
-DAPP_CHOICE=[你选了哪个]
-卡在哪个 H2 章节=
-完整报错信息=
-系统=macOS XX / Linux XX
-Claude Code 版本=$(claude --version)
-Node 版本=$(node --version)
-Git 版本=$(git --version)
-脚手架版本=$(grep '^version:' ~/.claude/skills/onchainos-dapp-scaffold/SKILL.md)
+DAPP_CHOICE=<your choice>
+Stuck at H2 section=
+Full error message=
+OS=macOS XX / Linux XX
+Agent CLI version=$(claude --version || codex --version || openclaw --version)
+Node version=$(node --version)
+Git version=$(git --version)
+Scaffold version=$(grep '^version:' ~/.agents/skills/onchainos-dapp-scaffold/SKILL.md)
 ```

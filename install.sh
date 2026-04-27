@@ -1,45 +1,70 @@
 #!/usr/bin/env bash
 # OnchainOS DApp Scaffold Skill · One-line installer
 #
+# 🚧 Migration in progress: this repo is moving from
+#    skylavis-sky/onchainos-dapp-scaffold → okx/dapp-connect-agenticwallet
+#    The default REPO below will be swept to the new URL once migration completes.
+#
 # Usage:
-#   curl -fsSL https://raw.githubusercontent.com/BlueBd/test-dapp-skill-scaffolding/main/install.sh | sh
+#   curl -fsSL https://raw.githubusercontent.com/skylavis-sky/onchainos-dapp-scaffold/main/install.sh | sh
 #
 # Or local preview (internal):
 #   bash install.sh
 #
-# Installs to: ~/.claude/skills/onchainos-dapp-scaffold/
+# Installs to: ~/.agents/skills/onchainos-dapp-scaffold/  (universal location;
+# Claude Code reads from ~/.claude/skills/ via symlink, OpenClaw / Codex /
+# Cursor read from ~/.agents/skills/ directly).
 
-set -e
+set -euo pipefail
 
 SKILL_NAME="onchainos-dapp-scaffold"
-DEST="${HOME}/.claude/skills/${SKILL_NAME}"
-REPO="${ONCHAINOS_SCAFFOLD_REPO:-https://github.com/BlueBd/test-dapp-skill-scaffolding.git}"
+DEST="${HOME}/.agents/skills/${SKILL_NAME}"
+CLAUDE_LINK="${HOME}/.claude/skills/${SKILL_NAME}"
+REPO="${ONCHAINOS_SCAFFOLD_REPO:-https://github.com/skylavis-sky/onchainos-dapp-scaffold.git}"
 
 echo "▶ Installing ${SKILL_NAME} to ${DEST}"
 
-# Claude Code check
-if ! command -v claude >/dev/null 2>&1; then
-  echo "✗ Claude Code 未安装。先装 Claude Code：https://claude.com/claude-code"
-  exit 1
+# Soft check: warn if no skills-protocol agent CLI is found, but don't exit.
+# The scaffold's actual triggers run inside whichever agent the developer
+# uses; install just needs to drop files in the right place.
+if ! command -v claude >/dev/null 2>&1 \
+   && ! command -v codex >/dev/null 2>&1 \
+   && ! command -v openclaw >/dev/null 2>&1; then
+  echo "⚠ No skills-protocol agent CLI detected (claude / codex / openclaw)."
+  echo "  Files will still be installed to ${DEST}; make sure your agent reads from there."
 fi
 
+mkdir -p "${HOME}/.agents/skills"
 mkdir -p "${HOME}/.claude/skills"
 
 if [ -d "${DEST}" ]; then
-  echo "⚠ 已存在，更新到最新："
-  cd "${DEST}" && git pull --ff-only 2>/dev/null || echo "  （非 git 仓库，跳过 pull）"
+  echo "⚠ Already installed; pulling latest:"
+  ( cd "${DEST}" && git pull --ff-only 2>/dev/null ) || echo "  (not a git repo, skipping pull)"
 else
-  git clone --depth 1 "${REPO}" "${DEST}" 2>/dev/null || {
-    echo "✗ git clone 失败（可能仓库未公开发布）。请手动：cp -r <预览目录> ${DEST}"
+  if ! git clone --depth 1 "${REPO}" "${DEST}" 2>/dev/null; then
+    echo "✗ git clone failed (repo URL may be wrong or unreachable)."
+    echo "  Tried: ${REPO}"
+    echo "  Fix: set ONCHAINOS_SCAFFOLD_REPO=<url> and re-run."
     exit 1
-  }
+  fi
 fi
 
-# 自检
-test -f "${DEST}/SKILL.md" || { echo "✗ SKILL.md 缺失"; exit 1; }
-test -d "${DEST}/templates" || { echo "✗ templates/ 缺失"; exit 1; }
+# Symlink into Claude Code's skills dir (other agents read ~/.agents/skills/ directly)
+ln -sfn "${DEST}" "${CLAUDE_LINK}"
 
-echo "✓ 安装完成：${DEST}"
+# Self-check
+test -f "${DEST}/SKILL.md" || { echo "✗ SKILL.md missing"; exit 1; }
+test -d "${DEST}/templates" || { echo "✗ templates/ missing"; exit 1; }
+
+echo "✓ Installed: ${DEST}"
+echo "  Symlinked → ${CLAUDE_LINK}"
 echo ""
-echo "在 Claude Code 对话框说一句即可触发："
-echo "  生成 DApp Skill：名字 my-dex-swap，业务 swap"
+echo "Restart your AI agent, then trigger the scaffold by saying:"
+echo "  Use the scaffold to upgrade ~/.claude/skills/your-existing-skill"
+echo ""
+echo "(For OpenClaw / Codex / Cursor users: skill is at ${DEST}; restart your agent to pick it up.)"
+
+# TODO: once scaffold is published as an OKX skills-protocol package,
+# replace the git-clone path with:
+#   npx skills add okx/onchainos-dapp-scaffold --yes --global
+# That'll handle multi-agent symlinking automatically.
