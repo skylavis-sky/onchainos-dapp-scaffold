@@ -73,7 +73,6 @@ All `pending_sign` transactions are signed by the [`okx/onchainos-skills`](https
 ```
 .
 ├── SKILL.md                 # Scaffold itself (agent instructions + workflow)
-├── INSTALL-DAPP.md          # Minimal install notes for third-party DApps
 ├── install.sh               # One-line installer
 ├── templates/               # 3 templates: SKILL.md / index.ts / README.md
 └── examples/                # Form A + Form B samples + automated tests
