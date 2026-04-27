@@ -18,16 +18,16 @@ description: |
   升级 DApp Skill：路径 <skill-dir>
 
   Examples:
-    "Use the scaffold to upgrade ~/.claude/skills/my-dex"
-    "用脚手架升级 ~/.claude/skills/uniswap-ai-test"
+    "Use the scaffold to upgrade ~/.agents/skills/my-dex"
+    "用脚手架升级 ~/.agents/skills/uniswap-ai-test"
 
   The scaffold reads the directory (Form A = has index.ts; Form B = markdown
   only) and injects pending_sign wrappers + next_action.tool routing +
   requiredTools + the 3 fixed spec sections per the OnchainOS schema.
 
-  [Scope] Claude Code (and forks that fully implement the Skill loading
-  protocol, e.g. OpenClaw). Cursor / Codex CLI / OpenCode lack a Skill loader
-  and need an MCP-based integration (separate scaffold).
+  [Scope] Works with any agent that reads from ~/.agents/skills/ —
+  Claude Code, OpenClaw, Cursor, Codex, Gemini CLI, etc.
+  (Claude Code also picks it up via the ~/.claude/skills/ symlink.)
 
 triggers:
   - "用脚手架升级"
@@ -44,10 +44,10 @@ executes the upgrade workflow described below.
 
 ## Scope & runtime model (must tell the user before generating)
 
-**Output works in:** Claude Code (and Skill-protocol-compatible forks like
-OpenClaw, when fully compatible).
-**Does NOT work in:** Cursor / Codex CLI / OpenCode — they lack a Skill
-loader and need the separate MCP-based scaffold.
+**Output works in:** Any agent that reads from `~/.agents/skills/` —
+Claude Code, OpenClaw, Cursor, Codex, Gemini CLI, and others.
+(Claude Code picks it up automatically via the `~/.claude/skills/` symlink
+created by the installer.)
 
 **Runtime model:** `index.ts` is never executed by any process. A Claude Code
 Skill is a Markdown instruction. The actual execution path is:
@@ -70,12 +70,12 @@ the upgrade flow):
 1. The scaffold spec doc (this SKILL.md, or the OnchainOS DApp integration
    guide § 3 "Skill integration")
 2. The scaffold itself (`onchainos-dapp-scaffold` — this skill)
-3. The third-party DApp's existing Skill (path like `~/.claude/skills/<dapp-name>/`)
+3. The third-party DApp's existing Skill (path like `~/.agents/skills/<dapp-name>/`)
 
 **Example trigger phrase:**
 ```
-I have an existing DApp Skill at ~/.claude/skills/my-dex.
-Upgrade it per the OnchainOS Skill spec, output to ~/.claude/skills/my-dex-onchainos/
+I have an existing DApp Skill at ~/.agents/skills/my-dex.
+Upgrade it per the OnchainOS Skill spec.
 ```
 
 ### Workflow (7 steps, includes a form fork)
@@ -210,7 +210,7 @@ immediately**, and ask the user to clean up the source first.
   `[signing constraint]` / `requiredTools` / `## Pre-flight Checks` /
   `## Signing Constraint` — these are the 5 fixed positions
 - **Append a new section at the end of the original body**:
-  `## OnchainOS routing conversion (auto-injected)`. Contents:
+  `## OnchainOS routing instructions (read before executing any tool)`. Contents:
   - Line numbers in the original SKILL.md where local-signing examples
     appear, paired with the OnchainOS replacement for each
   - The `pending_sign` structure + `next_action.tool` routing rules
@@ -245,12 +245,11 @@ immediately**, and ask the user to clean up the source first.
 - `{{EXAMPLE_USER_PROMPT}}` = pick a test phrase based on the first
   transaction tool's businessType
 
-#### Step 6 — Self-check + alignment report
+#### Step 6 — Self-check
 
-Run the 5 self-check items below. **Additionally**: produce an alignment
-report — three columns: "kept from source / added / changed" — as a
-diff summary. Generate a "migration table" so the user can confirm no
-information loss:
+Run the 5 self-check items and output a consolidated report to the user.
+Include a migration table so the user can confirm each tool was classified
+and routed correctly:
 
 ```
 Original tool         New tool              Class       OnchainOS tool

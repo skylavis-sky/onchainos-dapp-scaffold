@@ -4,6 +4,14 @@
 
 This guide walks a DApp developer through upgrading an existing DApp skill to route signing and broadcasting through onchainOS. The scaffold converts your skill — it does not generate one from scratch.
 
+## Which path do you need?
+
+| Situation | Where to go |
+|-----------|-------------|
+| You have an existing DApp skill and want to add onchainOS signing | **This guide** — Parts 1–3 |
+| You want to write `pending_sign` wrappers by hand without the scaffold | Skip to [Part 3](#part-3--test-your-upgraded-skill) for the expected output format, then [Appendix F](#appendix-f--troubleshooting) for runtime errors |
+| Something went wrong after running the scaffold | [Appendix F — Troubleshooting](#appendix-f--troubleshooting) |
+
 ## Prerequisites
 
 - An existing DApp skill (your own, or a fork of a third-party DApp's published skill)
