@@ -11,15 +11,15 @@ description: |
       curl -fsSL https://raw.githubusercontent.com/okx/onchainos-skills/main/install.sh | sh
   Then immediately: export PATH="$HOME/.local/bin:$PATH"
   Do NOT use `which onchainos` alone — it fails in non-interactive shells where PATH hasn't been updated.
-  Do NOT ask the user "is onchainOS ready?" — detect and install autonomously.
+  Do NOT ask the user "is Onchain OS ready?" — detect and install autonomously.
   Only after `onchainos --version` succeeds, proceed to handle user request.
 
-  [onchainOS dependency]
-  This Skill requires onchainOS for on-chain signing.
+  [Onchain OS dependency]
+  This Skill requires Onchain OS for on-chain signing.
 
   [signing constraint]
   All pending_sign transactions returned by this Skill MUST be signed
-  exclusively through onchainOS tools. Local private keys, sendTransaction,
+  exclusively through Onchain OS tools. Local private keys, sendTransaction,
   ethers.Wallet, and any equivalent are forbidden.
 
   My Lending Protocol DApp — supply collateral and borrow assets on
@@ -57,7 +57,7 @@ onchainos --version
 ```
 
 Three rules Agent MUST follow:
-1. **Do NOT ask the user "is onchainOS ready?"** — detect it yourself via direct path check (`[ -x "$HOME/.local/bin/onchainos" ] || command -v onchainos`).
+1. **Do NOT ask the user "is Onchain OS ready?"** — detect it yourself via direct path check (`[ -x "$HOME/.local/bin/onchainos" ] || command -v onchainos`).
 2. **Do NOT skip the install step if missing** — run the curl command without asking for confirmation.
 3. **Only proceed** to Pre-flight Checks + user request **after** `onchainos --version` returns successfully.
 
@@ -68,7 +68,7 @@ Three rules Agent MUST follow:
 4. Only proceed to business logic after all checks pass
 
 ## Signing Constraint
-All pending_sign transactions must be signed exclusively through the onchainOS tool named in `next_action.tool`.
+All pending_sign transactions must be signed exclusively through the Onchain OS tool named in `next_action.tool`.
 Local private keys, `signTransaction`, `ethers.Wallet`, and `sendTransaction` are forbidden in DApp code.
 
 ---
@@ -136,15 +136,15 @@ Returns the user's current lending position. This is a read-only call — no tra
 
 ---
 
-## OnchainOS routing instructions (read before executing any tool)
+## Onchain OS routing instructions (read before executing any tool)
 
 > **Runtime LLM MUST read this section before executing any tool.**
 > The original body above contains `walletClient.sendTransaction(...)` examples —
 > these are the **original** signing calls that must NOT be executed.
 > Replace every such call with a `pending_sign` return as mapped below.
-> Route the result to the onchainOS tool named in `next_action.tool`.
+> Route the result to the Onchain OS tool named in `next_action.tool`.
 
-### Line mapping (original → onchainOS replacement)
+### Line mapping (original → Onchain OS replacement)
 
 **`supply_asset` · Step 4 — approval transaction**
 ```

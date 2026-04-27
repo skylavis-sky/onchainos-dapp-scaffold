@@ -10,7 +10,7 @@ Supported chains: eip155:1, eip155:137
 npx skills add <your-org>/test-swap
 ```
 
-This skill requires onchainOS. On first use, the LLM will automatically run the install command in `## Pre-flight Checks`:
+This skill requires Onchain OS. On first use, the LLM will automatically run the install command in `## Pre-flight Checks`:
 
 ```bash
 npx skills add okx/onchainos-skills
@@ -18,11 +18,11 @@ npx skills add okx/onchainos-skills
 
 ## First-time authentication (email wallet creation)
 
-All on-chain signing is handled by onchainOS inside a local TEE. This DApp never touches private keys or persists login state.
+All on-chain signing is handled by Onchain OS inside a local TEE. This DApp never touches private keys or persists login state.
 
 ### Option A — Email OTP (recommended for individual users)
 
-onchainOS guides you through login on first signing call:
+Onchain OS guides you through login on first signing call:
 
 ```bash
 onchainos wallet login user@example.com     # sends OTP
@@ -51,11 +51,11 @@ The Agent follows this flow:
 
 1. Calls the DApp tool (e.g. `my_build_swap`) to construct `unsigned_tx`
 2. Tool returns `pending_sign` + `next_action.tool = 'onchainos wallet contract-call'`
-3. Agent routes to onchainOS `onchainos wallet contract-call`
-4. onchainOS signs + broadcasts inside the TEE and returns `txHash`
+3. Agent routes to Onchain OS `onchainos wallet contract-call`
+4. Onchain OS signs + broadcasts inside the TEE and returns `txHash`
 
 ## Security
 
 - This DApp never reads, stores, or transmits the user's private key, seed phrase, or keystore
-- All `pending_sign` transactions are signed exclusively through onchainOS
+- All `pending_sign` transactions are signed exclusively through Onchain OS
 - `ethers.Wallet`, `signTransaction`, and `sendTransaction` are forbidden as alternative signing paths

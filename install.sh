@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# OnchainOS DApp Scaffold Skill · One-line installer
+# Onchain OS DApp Scaffold Skill · One-line installer
 #
 # Usage:
 #   curl -fsSL https://raw.githubusercontent.com/okx/dapp-connect-agenticwallet/main/install.sh | sh
@@ -56,9 +56,9 @@ echo "✓ Installed: ${DEST}"
 echo "  Symlinked → ${CLAUDE_LINK}"
 echo ""
 echo "Restart your AI agent, then trigger the scaffold by saying:"
-echo "  Use the scaffold to upgrade ~/.claude/skills/your-existing-skill"
+echo "  Use the scaffold to upgrade ~/.agents/skills/your-existing-skill"
 echo ""
-echo "(For OpenClaw / Codex / Cursor users: skill is at ${DEST}; restart your agent to pick it up.)"
+echo "(Claude Code users can also use ~/.claude/skills/your-existing-skill — the symlink is equivalent.)"
 
 # TODO: once scaffold is published as an OKX skills-protocol package,
 # replace the git-clone path with:

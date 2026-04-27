@@ -3,7 +3,7 @@ name: onchainos-dapp-scaffold
 version: "1.4.0"
 author: "okx"
 description: |
-  Upgrade an existing DApp Skill into one compatible with the OnchainOS routing
+  Upgrade an existing DApp Skill into one compatible with the Onchain OS routing
   contract. The scaffold reads the source skill, classifies its tools, wraps
   transaction/signing tools in a pending_sign shell, injects required spec
   sections, and runs self-checks.
@@ -18,42 +18,42 @@ description: |
   升级 DApp Skill：路径 <skill-dir>
 
   Examples:
-    "Use the scaffold to upgrade ~/.claude/skills/my-dex"
-    "用脚手架升级 ~/.claude/skills/uniswap-ai-test"
+    "Use the scaffold to upgrade ~/.agents/skills/my-dex"
+    "用脚手架升级 ~/.agents/skills/uniswap-ai-test"
 
   The scaffold reads the directory (Form A = has index.ts; Form B = markdown
   only) and injects pending_sign wrappers + next_action.tool routing +
-  requiredTools + the 3 fixed spec sections per the OnchainOS schema.
+  requiredTools + the 3 fixed spec sections per the Onchain OS schema.
 
-  [Scope] Claude Code (and forks that fully implement the Skill loading
-  protocol, e.g. OpenClaw). Cursor / Codex CLI / OpenCode lack a Skill loader
-  and need an MCP-based integration (separate scaffold).
+  [Scope] Works with any agent that reads from ~/.agents/skills/ —
+  Claude Code, OpenClaw, Cursor, Codex, Gemini CLI, etc.
+  (Claude Code also picks it up via the ~/.claude/skills/ symlink.)
 
 triggers:
   - "用脚手架升级"
   - "升级 DApp Skill"
   - "Use the scaffold to upgrade"
   - "Upgrade DApp Skill"
-  - "upgrade onchainOS DApp"
+  - "upgrade Onchain OS DApp"
 ---
 
-# OnchainOS DApp Integration Scaffold
+# Onchain OS DApp Integration Scaffold
 
 This Skill is an AI workflow definition. The agent reads this file and
 executes the upgrade workflow described below.
 
 ## Scope & runtime model (must tell the user before generating)
 
-**Output works in:** Claude Code (and Skill-protocol-compatible forks like
-OpenClaw, when fully compatible).
-**Does NOT work in:** Cursor / Codex CLI / OpenCode — they lack a Skill
-loader and need the separate MCP-based scaffold.
+**Output works in:** Any agent that reads from `~/.agents/skills/` —
+Claude Code, OpenClaw, Cursor, Codex, Gemini CLI, and others.
+(Claude Code picks it up automatically via the `~/.claude/skills/` symlink
+created by the installer.)
 
 **Runtime model:** `index.ts` is never executed by any process. A Claude Code
 Skill is a Markdown instruction. The actual execution path is:
 LLM reads `index.ts` → simulates the function body during reasoning (calling
 Bash/WebFetch tools to fetch real data) → returns JSON conforming to the
-`pending_sign` contract → Claude routes per `next_action.tool` to OnchainOS.
+`pending_sign` contract → Claude routes per `next_action.tool` to Onchain OS.
 
 **Therefore this approach fits:** pure-function tools that build calldata
 (swap route lookup + encode, transfer address validation, etc.).
@@ -67,15 +67,15 @@ machines, heavy business logic — use the MCP scaffold instead.
 When the user provides any of these inputs (any combination is recognized as
 the upgrade flow):
 
-1. The scaffold spec doc (this SKILL.md, or the OnchainOS DApp integration
+1. The scaffold spec doc (this SKILL.md, or the Onchain OS DApp integration
    guide § 3 "Skill integration")
 2. The scaffold itself (`onchainos-dapp-scaffold` — this skill)
-3. The third-party DApp's existing Skill (path like `~/.claude/skills/<dapp-name>/`)
+3. The third-party DApp's existing Skill (path like `~/.agents/skills/<dapp-name>/`)
 
 **Example trigger phrase:**
 ```
-I have an existing DApp Skill at ~/.claude/skills/my-dex.
-Upgrade it per the OnchainOS Skill spec, output to ~/.claude/skills/my-dex-onchainos/
+I have an existing DApp Skill at ~/.agents/skills/my-dex.
+Upgrade it per the Onchain OS Skill spec.
 ```
 
 ### Workflow (7 steps, includes a form fork)
@@ -127,7 +127,7 @@ Classify per tool:
 | Function name contains `send` / `transfer` + has to+amount params | Transfer | Wrap with pending_sign → `onchainos wallet send` |
 | Function name contains `sign` / `login` / `authorize` + returns message | Signing | Wrap with pending_sign → `onchainos wallet sign-message` |
 | Function name contains `get` / `query` / `search` / `list` + returns plain JSON | Read-only | **Untouched**, pass through |
-| Already contains `ethers.Wallet` / `signTransaction` / `privateKey` | **Violation** — source signs locally | Tell user: must remove local signing first before integrating OnchainOS |
+| Already contains `ethers.Wallet` / `signTransaction` / `privateKey` | **Violation** — source signs locally | Tell user: must remove local signing first before integrating Onchain OS |
 
 #### Step 3a — Synthesize new SKILL.md (merge strategy, v1.4)
 
@@ -140,9 +140,9 @@ must be preserved; only inject the scaffold's required fields:
    - `name` = original name + `-onchainos` suffix (don't double-append if
      already suffixed)
    - `version` = original patch +1 (e.g. `1.2.0` → `1.2.1`)
-   - `description` = inject `[onchainOS dependency]` + `[signing constraint]`
+   - `description` = inject `[Onchain OS dependency]` + `[signing constraint]`
      blocks (append to original description, don't replace)
-   - `requiredTools` = union of OnchainOS tools matched by the transaction /
+   - `requiredTools` = union of Onchain OS tools matched by the transaction /
      transfer / signing tools (union with existing `requiredTools` if any)
 3. **Preserve every other original field** (`author`, `chains`, `tools`,
    `allowed-tools`, `model`, `license`, `metadata`, etc.) — must not silently
@@ -202,20 +202,20 @@ immediately**, and ask the user to clean up the source first.
   is left untouched)
 - **Frontmatter uses the merge strategy** (same rules as Step 3a): preserve
   all original fields, inject/override only the scaffold's 3 fixed fields:
-  - `description` += `[onchainOS dependency]` + `[signing constraint]` (append,
+  - `description` += `[Onchain OS dependency]` + `[signing constraint]` (append,
     don't replace)
   - `requiredTools` = union
   - Version: patch +1
-- **Inject in the new frontmatter**: `[onchainOS dependency]` /
+- **Inject in the new frontmatter**: `[Onchain OS dependency]` /
   `[signing constraint]` / `requiredTools` / `## Pre-flight Checks` /
   `## Signing Constraint` — these are the 5 fixed positions
 - **Append a new section at the end of the original body**:
-  `## OnchainOS routing conversion (auto-injected)`. Contents:
+  `## Onchain OS routing instructions (read before executing any tool)`. Contents:
   - Line numbers in the original SKILL.md where local-signing examples
-    appear, paired with the OnchainOS replacement for each
+    appear, paired with the Onchain OS replacement for each
   - The `pending_sign` structure + `next_action.tool` routing rules
   - "Runtime LLM MUST read: do not execute the local-signing examples in the
-    body above; return pending_sign instead and let the onchainOS tool named
+    body above; return pending_sign instead and let the Onchain OS tool named
     in next_action.tool sign for you"
 
 #### Step 4b — Do NOT generate a stub index.ts
@@ -245,15 +245,14 @@ immediately**, and ask the user to clean up the source first.
 - `{{EXAMPLE_USER_PROMPT}}` = pick a test phrase based on the first
   transaction tool's businessType
 
-#### Step 6 — Self-check + alignment report
+#### Step 6 — Self-check
 
-Run the 5 self-check items below. **Additionally**: produce an alignment
-report — three columns: "kept from source / added / changed" — as a
-diff summary. Generate a "migration table" so the user can confirm no
-information loss:
+Run the 5 self-check items and output a consolidated report to the user.
+Include a migration table so the user can confirm each tool was classified
+and routed correctly:
 
 ```
-Original tool         New tool              Class       OnchainOS tool
+Original tool         New tool              Class       Onchain OS tool
 my_build_swap   →     my_build_swap         Transaction onchainos wallet contract-call
 my_get_price    →     my_get_price          Read-only   — (pass-through)
 my_search_token →     my_search_token       Read-only   —
@@ -284,7 +283,7 @@ grep -l '{{' $D/* && echo FAIL:A1 || echo PASS:A1
 # A2: YAML frontmatter is valid
 python3 -c "import yaml,sys; yaml.safe_load(open('$D/SKILL.md').read().split('---',2)[1])" && echo PASS:A2 || echo FAIL:A2
 # A3: 3 fixed sections present
-grep -q '\[onchainOS dependency\]' $D/SKILL.md && grep -q '\[signing constraint\]' $D/SKILL.md && grep -q '## Pre-flight Checks' $D/SKILL.md && grep -q '## Signing Constraint' $D/SKILL.md && echo PASS:A3 || echo FAIL:A3
+grep -q '\[Onchain OS dependency\]' $D/SKILL.md && grep -q '\[signing constraint\]' $D/SKILL.md && grep -q '## Pre-flight Checks' $D/SKILL.md && grep -q '## Signing Constraint' $D/SKILL.md && echo PASS:A3 || echo FAIL:A3
 # A4: no local signing residue (expanded pattern set — covers JS, Solana, Foundry CLI, wagmi, ERC-4337, HD, API-relay)
 grep -v '^//' $D/index.ts 2>/dev/null | grep -qE \
   'ethers\.Wallet|new Wallet\(|signTransaction|sendTransaction|privateKey|mnemonic|keystore|\
@@ -388,7 +387,7 @@ async function <NAME>(params: any) {
 
 **Why throw-style placeholders**:
 - The legacy `'0xTODO'` string is a valid literal — the LLM in
-  "simulate-execute" mode would return it as-is, then OnchainOS would get an
+  "simulate-execute" mode would return it as-is, then Onchain OS would get an
   invalid address and signing would fail
 - `TODO('to')` throws immediately, forcing the LLM to either substitute a
   real value (per the comment, by calling the appropriate API) or ask the
@@ -438,7 +437,7 @@ async function <NAME>(params: any) {
 ## Hard constraints (must hold during every upgrade)
 
 1. SKILL.md must contain the 3 fixed positions: `description`'s
-   `[onchainOS dependency]` + `[signing constraint]` blocks, the
+   `[Onchain OS dependency]` + `[signing constraint]` blocks, the
    `requiredTools` array, and the `## Pre-flight Checks` + `## Signing Constraint`
    sections
 2. Every `index.ts` tool function's return value must conform to the
@@ -480,7 +479,7 @@ async function <NAME>(params: any) {
      `provider.sendTransaction(...)` or equivalent (must use the pending_sign
      adapter pattern instead)
 
-4. If the user asks for "local signing" or "bypass OnchainOS" code, refuse
+4. If the user asks for "local signing" or "bypass Onchain OS" code, refuse
    immediately and steer them back to `pending_sign` + `next_action.tool`
    routing.
 
@@ -528,7 +527,7 @@ Converted:
   2. Extract constructor calldata from the artifact
   3. Wrap in pending_sign:
      { status, unsigned_tx: {to, data, value, chain}, next_action: {tool: 'onchainos wallet contract-call'} }
-  4. OnchainOS takes over signing + broadcasting
+  4. Onchain OS takes over signing + broadcasting
 ```
 
 **Pattern 3 · Adapter wrap** (new) — for API-relayed unsigned tx:
@@ -559,7 +558,7 @@ if requiredTools is empty AND no signing/transaction keywords → skip the
 
 ### Gap 4 · Pure-doc / config / planning skills got irrelevant injections
 
-v1.2 injected `[onchainOS dependency]` + `requiredTools: []` into 5 skills
+v1.2 injected `[Onchain OS dependency]` + `requiredTools: []` into 5 skills
 that don't produce transactions: `uniswap-cca/configurator`,
 `uniswap-driver/{liquidity,swap}-planner`,
 `uniswap-hooks/{v4-hook-generator, v4-security-foundations}`. This created a
@@ -579,7 +578,7 @@ No hits → classify as "pure-doc skill" → skip upgrade, append at end of SKIL
 
   > This skill is pure documentation / config / planning; it doesn't directly
   > produce on-chain transactions or signing messages, so it has no direct
-  > integration with onchainOS. If downstream skills (deployer / executor
+  > integration with Onchain OS. If downstream skills (deployer / executor
   > types) emit transactions, those downstream skills are responsible for
   > the pending_sign routing.
 ```
@@ -603,5 +602,5 @@ upgrades require 10 manual passes.
 - `templates/` — three rendering templates (now used for fixed-section
   snippets only, not for from-scratch generation)
 - `examples/my-dex-swap/` — complete sample of an upgrade output
-- Upstream spec: third-party DApp OnchainOS integration quickstart, § 3
+- Upstream spec: third-party DApp Onchain OS integration quickstart, § 3
   "Skill integration"

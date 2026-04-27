@@ -1,8 +1,8 @@
 # onchainos-dapp-scaffold
 
-> Scaffolding for OnchainOS DApp Skills. Take an **existing** DApp skill and have the scaffold upgrade it into one that routes signing/broadcasting through OnchainOS.
+> Scaffolding for Onchain OS DApp Skills. Take an **existing** DApp skill and have the scaffold upgrade it into one that routes signing/broadcasting through Onchain OS.
 
-OnchainOS is a local TEE-based CLI wallet — the agent never touches the user's private key. Your DApp constructs the unsigned transaction; OnchainOS handles signing and broadcasting inside the TEE. See [GUIDE.md](GUIDE.md) for full integration details.
+Onchain OS is a local TEE-based CLI wallet — the agent never touches the user's private key. Your DApp constructs the unsigned transaction; Onchain OS handles signing and broadcasting inside the TEE. See [GUIDE.md](GUIDE.md) for full integration details.
 
 ## Quick start
 
@@ -36,14 +36,14 @@ Output lands at `<your-skill>-onchainos/` adjacent to the input skill (e.g. `~/.
 > The scaffold deliberately does **not** support generating a skill from scratch.
 > Bring an existing DApp skill — the scaffold's job is to convert, not to invent.
 
-## Testing guide
+## Integration guide
 
-End-to-end test steps with three sample DApps (Uniswap / GMX / Morpho) are in **[GUIDE.md](GUIDE.md)**:
+Full developer walkthrough is in **[GUIDE.md](GUIDE.md)**:
 
-- Pick a test endpoint and set environment variables
-- Clone the scaffold + the DApp skill from GitHub
-- Run the upgrade and verify the output
-- Walk through typical scenarios per `businessType`
+- Part 1: run the upgrade against your own skill
+- Part 2: verify the output with self-check commands
+- Part 3: test auth, read-only calls, transaction preview, and live signing
+- Appendix A–F: edge cases, EIP-712 conversion, troubleshooting
 
 ## Supported businessTypes
 
@@ -73,7 +73,6 @@ All `pending_sign` transactions are signed by the [`okx/onchainos-skills`](https
 ```
 .
 ├── SKILL.md                 # Scaffold itself (agent instructions + workflow)
-├── INSTALL-DAPP.md          # Minimal install notes for third-party DApps
 ├── install.sh               # One-line installer
 ├── templates/               # 3 templates: SKILL.md / index.ts / README.md
 └── examples/                # Form A + Form B samples + automated tests

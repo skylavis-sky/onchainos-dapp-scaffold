@@ -1,5 +1,5 @@
-// test-swap — onchainOS DApp Skill
-// 由 onchainos-dapp-scaffold 生成（严格遵循 onchainOS Skill 方案规范）。
+// test-swap — Onchain OS DApp Skill
+// 由 onchainos-dapp-scaffold 生成（严格遵循 Onchain OS Skill 方案规范）。
 //
 // DApp 开发者仅需在 TODO [三方] 注释处填入业务逻辑。
 // 严禁引入 ethers.Wallet / signTransaction / sendTransaction / 本地私钥。
