@@ -1,61 +1,61 @@
 # test-swap
 
-Test Swap DApp —— 脚手架跑通验证用。
+Test Swap DApp — scaffold smoke-test fixture.
 
-支持的链：eip155:1, eip155:137
+Supported chains: eip155:1, eip155:137
 
-## 安装
+## Install
 
 ```bash
 npx skills add <your-org>/test-swap
 ```
 
-本 Skill 依赖 onchainOS。首次使用时 LLM 会根据 `## Pre-flight Checks` 自动执行：
+This skill requires onchainOS. On first use, the LLM will automatically run the install command in `## Pre-flight Checks`:
 
 ```bash
 npx skills add okx/onchainos-skills
 ```
 
-## 首次使用认证（邮箱创建钱包）
+## First-time authentication (email wallet creation)
 
-所有链上签名通过 onchainOS 在本地 TEE 完成。本 DApp 不接触私钥、不保存登录状态。
+All on-chain signing is handled by onchainOS inside a local TEE. This DApp never touches private keys or persists login state.
 
-### 方式 A | 邮箱 OTP（推荐个人用户）
+### Option A — Email OTP (recommended for individual users)
 
-首次调用签名工具时 onchainOS 自动引导：
+onchainOS guides you through login on first signing call:
 
 ```bash
-onchainos wallet login user@example.com     # 发送验证码
-onchainos wallet verify <6-digit-code>      # 完成登录
-onchainos wallet status                     # 验证 loggedIn: true
+onchainos wallet login user@example.com     # sends OTP
+onchainos wallet verify <6-digit-code>      # completes login
+onchainos wallet status                     # confirm loggedIn: true
 ```
 
-### 方式 B | API Key（自动化 / 后端 / CI）
+### Option B — API Key (automation / backend / CI)
 
 ```bash
-export OKX_API_KEY=<你的 API Key>
-export OKX_SECRET_KEY=<你的 Secret Key>
-export OKX_PASSPHRASE=<你的 Passphrase>
+export OKX_API_KEY=<your API Key>
+export OKX_SECRET_KEY=<your Secret Key>
+export OKX_PASSPHRASE=<your Passphrase>
 onchainos wallet login
 ```
 
-> 凭证申请入口：OKX 开发者门户（链接由技术团队提供）。
+> To obtain credentials, visit the OKX Developer Portal (link provided by the technical team).
 
-## 使用示例
+## Usage example
 
-在 Agent 中以自然语言触发工具：
+Trigger tools with natural language in your Agent:
 
-> 用户：帮我 swap 100 USDC for ETH on Ethereum
+> User: swap 100 USDC for ETH on Ethereum
 
-Agent 会按以下流程工作：
+The Agent follows this flow:
 
-1. 调用本 DApp 工具（如 `my_build_swap`）构造 `unsigned_tx`
-2. 工具返回 `pending_sign` + `next_action.tool = 'onchainos wallet contract-call'`
-3. Agent 路由到 onchainOS 的 `onchainos wallet contract-call`
-4. onchainOS 在 TEE 内签名 + 广播，返回 `txHash`
+1. Calls the DApp tool (e.g. `my_build_swap`) to construct `unsigned_tx`
+2. Tool returns `pending_sign` + `next_action.tool = 'onchainos wallet contract-call'`
+3. Agent routes to onchainOS `onchainos wallet contract-call`
+4. onchainOS signs + broadcasts inside the TEE and returns `txHash`
 
-## 安全说明
+## Security
 
-- 本 DApp 不在任何时机读取、存储或传输用户私钥、助记词、keystore
-- 所有 pending_sign 交易只能经 onchainOS 签名
-- 禁用 `ethers.Wallet` / `signTransaction` / `sendTransaction` 等替代路径
+- This DApp never reads, stores, or transmits the user's private key, seed phrase, or keystore
+- All `pending_sign` transactions are signed exclusively through onchainOS
+- `ethers.Wallet`, `signTransaction`, and `sendTransaction` are forbidden as alternative signing paths

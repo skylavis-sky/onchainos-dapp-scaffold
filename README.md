@@ -25,7 +25,7 @@ The scaffold supports two source forms:
 | Source form | Layout | What the scaffold does |
 |-------------|--------|------------------------|
 | **Form A** | `SKILL.md` + `index.ts` with exported business functions | Wraps each transaction/signing tool with a `pending_sign` shell; read-only tools pass through. |
-| **Form B** | `SKILL.md` only (or `index.ts` with no exports) | Generates a `TODO [third-party]` stub for each tool; you fill in the calldata-construction logic. |
+| **Form B** | `SKILL.md` only (or `index.ts` with no exports) | Appends a routing conversion section to `SKILL.md` that maps each original tool's signing/transaction lines to `pending_sign` returns; no code is generated. |
 
 Output lands at `~/.claude/skills/<your-skill>-onchainos/`. Original skill is untouched, so you can roll back any time.
 
@@ -70,8 +70,8 @@ All `pending_sign` transactions are signed by the [`okx/onchainos-skills`](https
 ## Local verification
 
 ```bash
-python3 ~/.claude/skills/onchainos-dapp-scaffold/examples/.benchmark.py
-python3 ~/.claude/skills/onchainos-dapp-scaffold/examples/.benchmark_ext.py
+python3 ~/.agents/skills/onchainos-dapp-scaffold/examples/.benchmark.py
+python3 ~/.agents/skills/onchainos-dapp-scaffold/examples/.benchmark_ext.py
 ```
 
 Current benchmarks: 48/48 + 6/6 assertions, 3/3 negative cases caught.
