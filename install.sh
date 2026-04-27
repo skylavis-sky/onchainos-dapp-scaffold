@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# OnchainOS DApp Scaffold Skill · One-line installer
+# Onchain OS DApp Scaffold Skill · One-line installer
 #
 # Usage:
 #   curl -fsSL https://raw.githubusercontent.com/okx/dapp-connect-agenticwallet/main/install.sh | sh

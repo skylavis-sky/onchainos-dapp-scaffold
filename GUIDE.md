@@ -2,13 +2,13 @@
 
 > For **maintainers** validating the scaffold against known test endpoints, see [TESTING.md](TESTING.md).
 
-This guide walks a DApp developer through upgrading an existing DApp skill to route signing and broadcasting through onchainOS. The scaffold converts your skill — it does not generate one from scratch.
+This guide walks a DApp developer through upgrading an existing DApp skill to route signing and broadcasting through Onchain OS. The scaffold converts your skill — it does not generate one from scratch.
 
 ## Which path do you need?
 
 | Situation | Where to go |
 |-----------|-------------|
-| You have an existing DApp skill and want to add onchainOS signing | **This guide** — Parts 1–3 |
+| You have an existing DApp skill and want to add Onchain OS signing | **This guide** — Parts 1–3 |
 | You want to write `pending_sign` wrappers by hand without the scaffold | Skip to [Part 3](#part-3--test-your-upgraded-skill) for the expected output format, then [Appendix F](#appendix-f--troubleshooting) for runtime errors |
 | Something went wrong after running the scaffold | [Appendix F — Troubleshooting](#appendix-f--troubleshooting) |
 
@@ -17,7 +17,7 @@ This guide walks a DApp developer through upgrading an existing DApp skill to ro
 - An existing DApp skill (your own, or a fork of a third-party DApp's published skill)
 - The scaffold installed at `~/.agents/skills/onchainos-dapp-scaffold/` (see [README.md](README.md#quick-start))
 - An AI agent (Claude Code, OpenClaw, Codex, Cursor, etc.) that reads from `~/.agents/skills/`
-- The onchainOS CLI — the scaffold installs it automatically on first use
+- The Onchain OS CLI — the scaffold installs it automatically on first use
 
 ## Part 1 — Run the upgrade
 
@@ -48,7 +48,7 @@ The scaffold detects whether your source is [Form A or Form B](README.md#quick-s
 1. Scans for local signing code (`ethers.Wallet`, `sendTransaction`, `privateKey`, etc.) — blocks the upgrade if found
 2. Detects the source form and `businessType`
 3. Generates a new skill at `<your-skill>-onchainos/` adjacent to the input
-4. Installs the onchainOS CLI if not present
+4. Installs the Onchain OS CLI if not present
 5. Runs self-checks (A1–A5) to verify the output
 
 The original skill is untouched. You can roll back at any time by removing the `-onchainos` directory.
@@ -64,7 +64,7 @@ SKILL_DIR=~/.agents/skills/<your-skill>-onchainos
 ls "$SKILL_DIR/SKILL.md"
 
 # Four required markers are present
-grep -c "\[onchainOS dependency\]" "$SKILL_DIR/SKILL.md"  # Expected: 1
+grep -c "\[Onchain OS dependency\]" "$SKILL_DIR/SKILL.md"  # Expected: 1
 grep -c "\[signing constraint\]"   "$SKILL_DIR/SKILL.md"  # Expected: 1
 grep -c "## Pre-flight Checks"     "$SKILL_DIR/SKILL.md"  # Expected: 1
 grep -c "## Signing Constraint"    "$SKILL_DIR/SKILL.md"  # Expected: 1
@@ -93,7 +93,7 @@ Restart your agent after upgrading so the new skill is picked up.
 ### Auth check
 
 ```
-Use <your-skill>-onchainos to check if onchainOS is ready
+Use <your-skill>-onchainos to check if Onchain OS is ready
 ```
 
 Expected: the skill runs its Initialization block, confirms `onchainos --version`, then reports ready.
@@ -106,7 +106,7 @@ Run a read-only tool first (positions, balances, quotes) to confirm the skill ca
 Use <your-skill>-onchainos to [read-only action, e.g. "get my position on Ethereum"]
 ```
 
-Expected: data returned directly; no `pending_sign` object; no onchainOS call.
+Expected: data returned directly; no `pending_sign` object; no Onchain OS call.
 
 ### Transaction (preview)
 
@@ -129,7 +129,7 @@ Use <your-skill>-onchainos to [minimal real action, e.g. "swap 0.001 USDC for ET
 Expected flow:
 1. Skill builds calldata, returns `pending_sign`
 2. Agent passes it to `onchainos wallet contract-call`
-3. onchainOS signs inside TEE and broadcasts
+3. Onchain OS signs inside TEE and broadcasts
 4. Agent receives `txHash` and reports confirmation
 
 ### Multi-step flow (if applicable)
@@ -417,7 +417,7 @@ python3 -c "import yaml; yaml.safe_load(open('<output>/SKILL.md'))"
 Common causes: unquoted colon in a description line, mismatched pipe (`|`) block, bad indentation in `requiredTools`.
 
 **A3: `## Pre-flight Checks` section is missing from output**
-Four markers are required in every generated skill: `[onchainOS dependency]`, `[signing constraint]`, `## Pre-flight Checks`, `## Signing Constraint`. If any are absent, the scaffold did not complete Step 3. Re-run.
+Four markers are required in every generated skill: `[Onchain OS dependency]`, `[signing constraint]`, `## Pre-flight Checks`, `## Signing Constraint`. If any are absent, the scaffold did not complete Step 3. Re-run.
 
 **A4/A5: reported as FAIL instead of SKIP for a Form B output**
 A4 and A5 only apply to Form A (they check `index.ts`). A Form B output has no `index.ts` and must report SKIP for both. If they show FAIL, the self-check logic is running A4/A5 on the markdown files. Disregard if the output has no `index.ts`.
@@ -465,7 +465,7 @@ data: data.startsWith('0x') ? data : '0x' + data
 **`onchainos wallet contract-call` returns "invalid value"**
 `value` must be a hex string for EVM: `'0x0'` for no-value calls, or `'0x' + BigInt(weiAmount).toString(16)`.
 
-**Agent returns `pending_sign` but does not route to onchainOS**
+**Agent returns `pending_sign` but does not route to Onchain OS**
 Verify two things: (1) the `requiredTools` block in SKILL.md lists the tool by its exact name (e.g. `onchainos wallet contract-call` — spaces, not hyphens); (2) `next_action.tool` in the returned JSON matches that name exactly.
 
 ---
@@ -479,7 +479,7 @@ The API likely returns a non-standard EIP-712 shape. The required shape is:
 ```
 If the API returns `values` instead of `message`, or omits `primaryType`, convert before returning. See Appendix B for a Uniswap walkthrough.
 
-**Signature is accepted by onchainOS but on-chain verification fails silently**
+**Signature is accepted by Onchain OS but on-chain verification fails silently**
 A numeric field (`uint64`, `uint128`, `uint256`) is being passed as a JavaScript `Number`, causing precision loss above 2^53−1. Wrap every such field with `toSafeInt()`:
 ```ts
 deadline: toSafeInt(apiResponse.deadline)
@@ -494,7 +494,7 @@ See Appendix C for the full rule set.
 ### F10 · Runtime: multi-step flows & session
 
 **Second transaction executes before the first is confirmed**
-Multi-step flows (e.g. ERC-20 approval → supply) must be sequential. After routing the first `pending_sign` to onchainOS and receiving `txHash`, confirm on-chain before proceeding:
+Multi-step flows (e.g. ERC-20 approval → supply) must be sequential. After routing the first `pending_sign` to Onchain OS and receiving `txHash`, confirm on-chain before proceeding:
 ```bash
 onchainos wallet status <txHash>
 ```

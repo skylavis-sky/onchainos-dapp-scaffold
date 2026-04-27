@@ -73,7 +73,7 @@ rm -rf ~/.claude/skills/"${DAPP_NAME}-onchainos"
 # 3. Clean clone temp dirs for all DApps
 rm -rf /tmp/uniswap-monorepo /tmp/gmx-monorepo /tmp/morpho-monorepo
 
-# 4. Uninstall onchainOS CLI
+# 4. Uninstall Onchain OS CLI
 rm -rf ~/.local/bin/onchainos
 rm -rf ~/.onchainos
 
@@ -201,4 +201,4 @@ claude -p "Use my-morpho-cli-onchainos to check my Morpho positions and current 
 claude -p "Use my-morpho-cli-onchainos to borrow 500 USDC against ETH collateral on Base, target LTV 50%"
 ```
 
-**Expected behavior:** the upgraded skill returns a `pending_sign` transaction object (containing `unsigned_tx` + `next_action.tool` pointing to `onchainos wallet contract-call`). The onchainOS CLI takes over from there: signing + broadcasting.
+**Expected behavior:** the upgraded skill returns a `pending_sign` transaction object (containing `unsigned_tx` + `next_action.tool` pointing to `onchainos wallet contract-call`). The Onchain OS CLI takes over from there: signing + broadcasting.

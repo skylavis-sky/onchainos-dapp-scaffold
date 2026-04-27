@@ -1,8 +1,8 @@
 # onchainos-dapp-scaffold
 
-> Scaffolding for OnchainOS DApp Skills. Take an **existing** DApp skill and have the scaffold upgrade it into one that routes signing/broadcasting through OnchainOS.
+> Scaffolding for Onchain OS DApp Skills. Take an **existing** DApp skill and have the scaffold upgrade it into one that routes signing/broadcasting through Onchain OS.
 
-OnchainOS is a local TEE-based CLI wallet — the agent never touches the user's private key. Your DApp constructs the unsigned transaction; OnchainOS handles signing and broadcasting inside the TEE. See [GUIDE.md](GUIDE.md) for full integration details.
+Onchain OS is a local TEE-based CLI wallet — the agent never touches the user's private key. Your DApp constructs the unsigned transaction; Onchain OS handles signing and broadcasting inside the TEE. See [GUIDE.md](GUIDE.md) for full integration details.
 
 ## Quick start
 

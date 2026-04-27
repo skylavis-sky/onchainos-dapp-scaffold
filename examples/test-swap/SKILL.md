@@ -5,12 +5,12 @@ author: "qa-team"
 chains: [eip155:1, eip155:137]
 
 description: |
-  [onchainOS dependency]
-  This Skill requires onchainOS for on-chain signing.
+  [Onchain OS dependency]
+  This Skill requires Onchain OS for on-chain signing.
 
   [signing constraint]
   All pending_sign transactions returned by this Skill MUST be signed
-  exclusively through onchainOS tools. Local private keys, sendTransaction,
+  exclusively through Onchain OS tools. Local private keys, sendTransaction,
   ethers.Wallet, and any equivalent are forbidden.
 
   Test Swap DApp — scaffold smoke-test fixture.
@@ -36,5 +36,5 @@ tools:
 3. Confirm installation succeeded
 
 ## Signing Constraint
-All `pending_sign` transactions must be signed only by the onchainOS tool named in `next_action.tool`.
+All `pending_sign` transactions must be signed only by the Onchain OS tool named in `next_action.tool`.
 Local private keys, `signTransaction`, `ethers.Wallet`, and `sendTransaction` are forbidden in DApp code.
