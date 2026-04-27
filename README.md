@@ -29,7 +29,7 @@ The scaffold supports two source forms:
 | Source form | Layout | What the scaffold does |
 |-------------|--------|------------------------|
 | **Form A** | `SKILL.md` + `index.ts` with exported business functions | Wraps each transaction/signing tool with a `pending_sign` shell; read-only tools pass through. |
-| **Form B** | `SKILL.md` only (or `index.ts` with no exports) | Appends a routing conversion section to `SKILL.md` that maps each original tool's signing/transaction lines to `pending_sign` returns; no code is generated. |
+| **Form B** | `SKILL.md` only (or `index.ts` with no exports) | Appends a routing conversion section to `SKILL.md` that maps each original tool's signing/transaction lines to `pending_sign` returns; no code is generated. See [`examples/my-lend-protocol`](examples/my-lend-protocol/) → [`examples/my-lend-protocol-onchainos`](examples/my-lend-protocol-onchainos/) for a before/after walkthrough. |
 
 Output lands at `<your-skill>-onchainos/` adjacent to the input skill (e.g. `~/.agents/skills/<your-skill>-onchainos/`). Original skill is untouched, so you can roll back any time.
 
@@ -76,9 +76,11 @@ All `pending_sign` transactions are signed by the [`okx/onchainos-skills`](https
 ├── INSTALL-DAPP.md          # Minimal install notes for third-party DApps
 ├── install.sh               # One-line installer
 ├── templates/               # 3 templates: SKILL.md / index.ts / README.md
-└── examples/                # 2 complete samples + 4 automated tests
-    ├── my-dex-swap/         # Swap sample
-    ├── test-swap/           # Sample with .verify.py / .render.py tests
+└── examples/                # Form A + Form B samples + automated tests
+    ├── my-dex-swap/                    # Form A sample (SKILL.md + index.ts)
+    ├── test-swap/                      # Form A fixture with .verify.py / .render.py tests
+    ├── my-lend-protocol/               # Form B source — markdown-only skill (before upgrade)
+    ├── my-lend-protocol-onchainos/     # Form B output — after scaffold upgrade (no index.ts generated)
     ├── .benchmark.py        # 4 businessTypes × 12 assertions
     └── .benchmark_ext.py    # Multi-tool stress + negative + timing
 ```
