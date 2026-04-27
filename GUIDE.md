@@ -1,7 +1,5 @@
 # Scaffold Testing Guide
 
-> **🚧 Migration notice**: This repo is moving from `skylavis-sky/onchainos-dapp-scaffold` to `okx/dapp-connect-agenticwallet`. Bookmark the new URL once it's live. Install commands below use the currently-active URL; they'll be swept to the new one after migration.
-
 ## Overview
 
 Three third-party DApp test endpoints are currently supported. Each maps to a different `businessType`, exercising a different scaffold upgrade path.
@@ -94,13 +92,13 @@ ls ~/.claude/skills/ | grep -E "^(onchainos-dapp-scaffold|${DAPP_NAME})"
 
 ## Part 1a — Clone the scaffold from GitHub
 
-Scaffold repo: `https://github.com/skylavis-sky/onchainos-dapp-scaffold` (MIT, public). Use `git clone` directly — no zip download needed.
+Scaffold repo: `https://github.com/okx/dapp-connect-agenticwallet` (MIT, public). Use `git clone` directly — no zip download needed.
 
 > **After repo migration**, swap the URL below for `https://github.com/okx/dapp-connect-agenticwallet`.
 
 ```bash
 # Clone the scaffold to the universal skills location
-git clone https://github.com/skylavis-sky/onchainos-dapp-scaffold \
+git clone https://github.com/okx/dapp-connect-agenticwallet \
   ~/.agents/skills/onchainos-dapp-scaffold
 
 # Symlink into Claude Code's skills dir so Claude picks it up too

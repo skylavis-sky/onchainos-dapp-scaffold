@@ -39,10 +39,6 @@ triggers:
 
 # OnchainOS DApp Integration Scaffold
 
-> **🚧 Migration notice**: This scaffold's repo is moving from
-> `skylavis-sky/onchainos-dapp-scaffold` to `okx/dapp-connect-agenticwallet`.
-> Both URLs will work during transition; bookmark the new one.
-
 This Skill is an AI workflow definition. The agent reads this file and
 executes the upgrade workflow described below.
 

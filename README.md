@@ -1,7 +1,5 @@
 # onchainos-dapp-scaffold
 
-> **🚧 Migration notice**: This repo is moving from `skylavis-sky/onchainos-dapp-scaffold` to `okx/dapp-connect-agenticwallet`. Bookmark the new URL once it's live — the install commands below will be swept to the new URL after migration.
-
 > Scaffolding for OnchainOS DApp Skills. Take an **existing** DApp skill and have the scaffold upgrade it into one that routes signing/broadcasting through OnchainOS.
 
 ## Quick start
@@ -9,7 +7,7 @@
 ### Install the scaffold
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/skylavis-sky/onchainos-dapp-scaffold/main/install.sh | sh
+curl -fsSL https://raw.githubusercontent.com/okx/dapp-connect-agenticwallet/main/install.sh | sh
 ```
 
 Installs to `~/.agents/skills/onchainos-dapp-scaffold/` (Claude Code, OpenClaw, Codex, Cursor, etc. all pick it up). Restart your AI agent after install.

@@ -1,12 +1,8 @@
 #!/usr/bin/env bash
 # OnchainOS DApp Scaffold Skill · One-line installer
 #
-# 🚧 Migration in progress: this repo is moving from
-#    skylavis-sky/onchainos-dapp-scaffold → okx/dapp-connect-agenticwallet
-#    The default REPO below will be swept to the new URL once migration completes.
-#
 # Usage:
-#   curl -fsSL https://raw.githubusercontent.com/skylavis-sky/onchainos-dapp-scaffold/main/install.sh | sh
+#   curl -fsSL https://raw.githubusercontent.com/okx/dapp-connect-agenticwallet/main/install.sh | sh
 #
 # Or local preview (internal):
 #   bash install.sh
@@ -20,7 +16,7 @@ set -euo pipefail
 SKILL_NAME="onchainos-dapp-scaffold"
 DEST="${HOME}/.agents/skills/${SKILL_NAME}"
 CLAUDE_LINK="${HOME}/.claude/skills/${SKILL_NAME}"
-REPO="${ONCHAINOS_SCAFFOLD_REPO:-https://github.com/skylavis-sky/onchainos-dapp-scaffold.git}"
+REPO="${ONCHAINOS_SCAFFOLD_REPO:-https://github.com/okx/dapp-connect-agenticwallet.git}"
 
 echo "▶ Installing ${SKILL_NAME} to ${DEST}"
 
