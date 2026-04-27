@@ -367,6 +367,225 @@ grep "^version:" SKILL.md
 > git pull origin main
 > ```
 
+## Appendix F — Troubleshooting
+
+Use Ctrl-F on the symptom you're seeing. Entries are grouped by phase.
+
+---
+
+### F1 · Install & scaffold setup
+
+**`SKILL.md missing` or `templates/ missing` after install**
+Re-run the install or pull the latest:
+```bash
+rm -rf ~/.agents/skills/onchainos-dapp-scaffold
+curl -fsSL https://raw.githubusercontent.com/okx/dapp-connect-agenticwallet/main/install.sh | sh
+```
+
+**Scaffold installed but agent doesn't recognize it**
+The agent's skill registry is cached at startup. Restart your agent (close + reopen Claude Code / Codex / Cursor) after install.
+
+**Symlink fails on Windows / WSL**
+`ln -s` may require Developer Mode on Windows. Use a direct copy instead:
+```bash
+cp -r ~/.agents/skills/onchainos-dapp-scaffold ~/.claude/skills/onchainos-dapp-scaffold
+```
+
+---
+
+### F2 · Source preparation — violation scan
+
+**Upgrade blocked: `ethers.Wallet` / `signTransaction` / `sendTransaction` / `privateKey` detected**
+The source contains local signing code. Remove all signing, key-loading, and broadcast calls. Keep only calldata construction. Clean the source, then re-run the scaffold.
+
+**Upgrade blocked: `walletClient.sendTransaction` or `useWriteContract` detected (wagmi/viem)**
+Replace with the `pending_sign` pattern: build `unsigned_tx` from the API response and return it. Remove the wagmi/viem signing hooks.
+
+**Upgrade blocked: `forge script --broadcast` or `cast send` detected**
+Extract the contract ABI and calldata. Return a `pending_sign` wrapping that calldata. Drop the Foundry broadcast call.
+
+**False positive: violation keyword in a test file, comment, or type import**
+Exclude non-production directories before scanning. Annotate unavoidable false positives with `// onchainos-scan-ignore` on that line. Re-run.
+
+**False positive: `privateKey` is an API response field or URL parameter, not a signing key**
+Rename the field to something non-flagging (e.g. `apiToken`, `authKey`). If renaming breaks an upstream contract, add `// onchainos-scan-ignore` on the specific line.
+
+**Violation detected in `references/` subdirectory, not in main skill files**
+The scanner covers only the root skill files by default. Violations in `references/` are advisory — clean them if they'll be executed, ignore them if they're documentation only.
+
+---
+
+### F3 · Form detection edge cases
+
+**`index.ts` exists but is empty or contains only comments → misdetected as Form A**
+The detection command `grep -q '^export' index.ts` will correctly return Form B when there are no export statements. If it returns Form A, verify the file has no `export` lines at the start of any line.
+
+**`export async function` not matched by form-detection grep**
+The relaxed pattern `grep -qE '^export' index.ts` covers `export async function`, `export const`, `export default`. If detection still fails, open `index.ts` and confirm your function declarations begin with `export` at column 0.
+
+**Source has `index.ts` with syntax errors → parser fails before form detection**
+Fix TypeScript syntax first: `node --check index.ts` or `tsc --noEmit`. Re-run once clean.
+
+---
+
+### F4 · Upgrade: Form A specific
+
+**Tool classified as read-only because its name starts with `get`, but it returns transaction calldata**
+Classification is based on the return type, not the function name. If the function returns `{to, data, value, chain}`, it is always a Transaction tool regardless of name. Confirm with the agent.
+
+**`import` statements break after functions are renamed to `_impl` suffix**
+The scaffold is designed for single-file skills. If your source imports functions across files, consolidate to a single `index.ts` before running the upgrade.
+
+**`toSafeInt()` helper was injected but `uint*/int*` fields in `sign-message` payload are still plain numbers**
+Check the generated `sign-message` function's `return.message` block. Every numeric field that maps to a Solidity `uint*` or `int*` type must be wrapped: `amount: toSafeInt(apiResp.amount)`. See Appendix C.
+
+**Generated `index.ts` has no `export` statement at the end**
+Self-check A5 will catch this. Add manually: `export { toolName1, toolName2 };` as the final line, then re-run the self-checks.
+
+**`TODO [third-party]` placeholders are still in the generated file**
+These are intentional fail-fast markers. After generation, search for `TODO [third-party]` and fill in every business logic block (API base URL, route call, calldata encoding). The scaffold will not fill these in for you.
+
+---
+
+### F5 · Upgrade: Form B specific
+
+**Scanner finds no signing keywords — no line mapping is produced**
+This is not an error. The source uses an API-relay pattern: the API already returns `{to, data, value}`. The routing conversion section should use the adapter-wrap template, which maps each API response field directly into `unsigned_tx` without needing to replace a local signing call.
+
+**Read-only tool (`get_position`, `query_balance`) appears in the routing conversion section**
+Read-only tools must not be mapped. Any tool whose sole purpose is to call a GET endpoint and return data should be listed in the routing section as: `get_position — read-only, no replacement needed`.
+
+**LLM batches approval + supply into a single `pending_sign` return**
+Multi-step flows require two separate sequential returns. The routing conversion section must state this explicitly:
+1. Return approval `pending_sign` → wait for `txHash`
+2. Return supply `pending_sign` → wait for `txHash`
+Never batch both into one object.
+
+**Original `requiredTools` in source gets overwritten instead of merged**
+The correct behaviour is a union. If the output `requiredTools` is missing entries from the source, add them back manually and re-run the self-check.
+
+**Output skill is named `my-skill-onchainos-onchainos`**
+The scaffold should strip any existing `-onchainos` suffix before appending the new one. Fix the `name` field in the generated frontmatter manually.
+
+---
+
+### F6 · Self-check failures
+
+**A1: `{{VARIABLE}}` still visible in output**
+A template variable was not substituted. Search all output files for `{{` and identify which variable is unresolved. Re-run the scaffold step that populates that variable.
+
+**A2: YAML frontmatter is invalid**
+Test the frontmatter block directly:
+```bash
+python3 -c "import yaml; yaml.safe_load(open('<output>/SKILL.md'))"
+```
+Common causes: unquoted colon in a description line, mismatched pipe (`|`) block, bad indentation in `requiredTools`.
+
+**A3: `## Pre-flight Checks` section is missing from output**
+Four markers are required in every generated skill: `[onchainOS dependency]`, `[signing constraint]`, `## Pre-flight Checks`, `## Signing Constraint`. If any are absent, the scaffold did not complete Step 3. Re-run.
+
+**A4/A5: reported as FAIL instead of SKIP for a Form B output**
+A4 and A5 only apply to Form A (they check `index.ts`). A Form B output has no `index.ts` and must report SKIP for both. If they show FAIL, the self-check logic is running A4/A5 on the markdown files. Disregard if the output has no `index.ts`.
+
+---
+
+### F7 · Runtime: initialization
+
+**`onchainos --version` returns "command not found" immediately after install**
+The install script writes to `~/.local/bin`. The current shell session doesn't know about it yet. Run:
+```bash
+export PATH="$HOME/.local/bin:$PATH"
+onchainos --version
+```
+The generated skill's Initialization block does this automatically — do not bypass it.
+
+**`onchainos --version` succeeds but the skill reports missing subcommands**
+An older version of onchainos is installed. The binary-exists check passes but the required subcommands aren't present. Re-install:
+```bash
+curl -fsSL https://raw.githubusercontent.com/okx/onchainos-skills/main/install.sh | sh
+```
+
+**Initialization block skipped on re-invocation**
+The Initialization block must run on **every** invocation, not just the first. It is idempotent — safe to repeat. If your agent skips it, check that the SKILL.md description block still contains the `BEFORE ANY RESPONSE` instruction.
+
+---
+
+### F8 · Runtime: `pending_sign` format errors
+
+**`onchainos wallet contract-call` returns "invalid chain format"**
+`chain` must be CAIP-2: `eip155:1` (Ethereum), `eip155:137` (Polygon), `eip155:42161` (Arbitrum). Strings like `ethereum`, `mainnet`, or `1` are not accepted.
+
+**`onchainos wallet contract-call` returns "invalid address"**
+`to` must be a checksummed or lowercase hex address. Validate before returning:
+```ts
+to: rawAddress.toLowerCase()   // or ethers.getAddress(rawAddress)
+```
+
+**`onchainos wallet contract-call` returns "invalid data"**
+`data` must be a `0x`-prefixed hex string. Prefix if missing:
+```ts
+data: data.startsWith('0x') ? data : '0x' + data
+```
+
+**`onchainos wallet contract-call` returns "invalid value"**
+`value` must be a hex string for EVM: `'0x0'` for no-value calls, or `'0x' + BigInt(weiAmount).toString(16)`.
+
+**Agent returns `pending_sign` but does not route to onchainOS**
+Verify two things: (1) the `requiredTools` block in SKILL.md lists the tool by its exact name (e.g. `onchainos wallet contract-call` — spaces, not hyphens); (2) `next_action.tool` in the returned JSON matches that name exactly.
+
+---
+
+### F9 · Runtime: EIP-712 / sign-message
+
+**`onchainos wallet sign-message` returns "missing msgHash" or signature fails on-chain**
+The API likely returns a non-standard EIP-712 shape. The required shape is:
+```json
+{ "types": {...}, "primaryType": "...", "domain": {...}, "message": {...} }
+```
+If the API returns `values` instead of `message`, or omits `primaryType`, convert before returning. See Appendix B for a Uniswap walkthrough.
+
+**Signature is accepted by onchainOS but on-chain verification fails silently**
+A numeric field (`uint64`, `uint128`, `uint256`) is being passed as a JavaScript `Number`, causing precision loss above 2^53−1. Wrap every such field with `toSafeInt()`:
+```ts
+deadline: toSafeInt(apiResponse.deadline)
+```
+See Appendix C for the full rule set.
+
+**`pending_sign` for a sign-message tool uses `unsigned_tx` instead of `message`**
+`sign-message` tools must return `message: <eip712-or-personal-sign-payload>`, not `unsigned_tx`. The two shapes are not interchangeable.
+
+---
+
+### F10 · Runtime: multi-step flows & session
+
+**Second transaction executes before the first is confirmed**
+Multi-step flows (e.g. ERC-20 approval → supply) must be sequential. After routing the first `pending_sign` to onchainOS and receiving `txHash`, confirm on-chain before proceeding:
+```bash
+onchainos wallet status <txHash>
+```
+Do not batch both steps into a single `pending_sign`.
+
+**User says "on Arbitrum" but the skill hardcodes `chain: 'eip155:1'`**
+Accept `chain` as a parameter and pass it through:
+```ts
+async function myTool(params: { chain?: string }) {
+  const chain = params.chain ?? 'eip155:1';
+  return { ..., unsigned_tx: { ..., chain } };
+}
+```
+
+**`onchainos wallet status` returns `loggedIn: false` mid-session**
+Session has expired. Re-authenticate:
+```bash
+onchainos wallet login user@example.com
+onchainos wallet verify <6-digit-code>
+```
+
+**Transaction reverts on-chain despite valid `pending_sign` format**
+Swap/quote calldata expires (typically 30 s–5 min). Do not cache a `pending_sign` object across invocations. Rebuild the route and calldata on every tool call.
+
+---
+
 ## Failure-report template
 
 When you hit a problem, paste the following into the Lark thread / issue comment:
